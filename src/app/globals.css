@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #090a0f;
+    --surface: #0e1117;
+    --surface-raised: #151922;
+    --surface-overlay: #1c2230;
+
+    --border: #242b3b;
+    --border-muted: #1a202c;
+
+    --foreground: #f1f5f9;
+    --muted: #1e2638;
+    --muted-foreground: #8a99ad;
+
+    --accent: #3b82f6;
+    --accent-foreground: #ffffff;
+    --accent-subtle: rgba(59, 130, 246, 0.15);
+
+    --success: #10b981;
+    --success-foreground: #ffffff;
+    --success-subtle: rgba(16, 185, 129, 0.15);
+
+    --warning: #f59e0b;
+    --warning-foreground: #000000;
+    --warning-subtle: rgba(245, 158, 11, 0.15);
+
+    --danger: #ef4444;
+    --danger-foreground: #ffffff;
+    --danger-subtle: rgba(239, 68, 68, 0.15);
+
+    --info: #06b6d4;
+    --info-foreground: #ffffff;
+    --info-subtle: rgba(6, 182, 212, 0.15);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, Monaco, monospace;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom technical scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Monospace font utility */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Subtle grid line utility */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
