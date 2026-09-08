@@ -47,6 +47,17 @@ export type LegionEventType =
   | "APPROVAL_REQUIRED"
   | "APPROVAL_GRANTED"
   | "APPROVAL_REJECTED"
+  // Sandbox Lifecycle
+  | "SANDBOX_CREATED"
+  | "SANDBOX_READY"
+  | "SANDBOX_DESTROYED"
+  | "SANDBOX_ERROR"
+  // Real Execution Telemetry
+  | "EXECUTION_STARTED"
+  | "EXECUTION_OUTPUT"
+  | "EXECUTION_ERROR"
+  | "EXECUTION_COMPLETED"
+  | "EXECUTION_CANCELLED"
   // Terminal / Logs
   | "TERMINAL_OUTPUT";
 
@@ -153,6 +164,32 @@ export interface ApprovalEventPayload extends BaseEventPayload {
   message: string;
 }
 
+export interface SandboxEventPayload extends BaseEventPayload {
+  type: "SANDBOX_CREATED" | "SANDBOX_READY" | "SANDBOX_DESTROYED" | "SANDBOX_ERROR";
+  sandboxId: string;
+  provider: string;
+  message: string;
+  error?: string;
+}
+
+export interface ExecutionEventPayload extends BaseEventPayload {
+  type:
+    | "EXECUTION_STARTED"
+    | "EXECUTION_OUTPUT"
+    | "EXECUTION_ERROR"
+    | "EXECUTION_COMPLETED"
+    | "EXECUTION_CANCELLED";
+  sandboxId: string;
+  command: string;
+  agentRole?: AgentRole;
+  stream?: "stdout" | "stderr";
+  output?: string;
+  exitCode?: number;
+  durationMs?: number;
+  message: string;
+  error?: string;
+}
+
 export interface TerminalEventPayload extends BaseEventPayload {
   type: "TERMINAL_OUTPUT";
   stream: "COMMAND" | "STDOUT" | "STDERR" | "SYSTEM" | "SUCCESS" | "WARNING";
@@ -168,4 +205,6 @@ export type LegionEvent =
   | IssueEventPayload
   | BuildEventPayload
   | ApprovalEventPayload
+  | SandboxEventPayload
+  | ExecutionEventPayload
   | TerminalEventPayload;

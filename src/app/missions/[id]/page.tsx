@@ -3,6 +3,7 @@
 import React from "react";
 import { MissionHeader } from "@/components/missions/mission-header";
 import { MissionProgressCard } from "@/components/missions/mission-progress-card";
+import { RealExecutionCard } from "@/components/missions/real-execution-card";
 import { AgentCardGrid } from "@/components/agents/agent-card-grid";
 import { LegionAgentGraph } from "@/components/graph/legion-agent-graph";
 import { LiveActivityFeed } from "@/components/activity/live-activity-feed";
@@ -24,6 +25,9 @@ export default function MissionControlPage({
       <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto w-full">
         {/* Mission Summary & Metrics */}
         <MissionProgressCard />
+
+        {/* Real Sandbox Execution Runtime */}
+        <RealExecutionCard />
 
         {/* 4 Legion Agents */}
         <AgentCardGrid />

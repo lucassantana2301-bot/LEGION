@@ -33,7 +33,7 @@ export const useActivitySlice = create<ActivitySliceState>((set) => {
       actSeverity = "ERROR";
     } else if (event.type.includes("PASS") || event.type.includes("SUCCESS") || event.type.includes("COMPLETED")) {
       actSeverity = "SUCCESS";
-    } else if (event.type.includes("WARNING") || event.type.includes("ISSUE")) {
+    } else if (event.type.includes("WARNING") || event.type.includes("ISSUE") || event.type.includes("CANCELLED")) {
       actSeverity = "WARNING";
     }
 
@@ -50,9 +50,16 @@ export const useActivitySlice = create<ActivitySliceState>((set) => {
     } else if ("role" in event && event.role) {
       role = event.role;
       actTitle = `${event.role}`;
+    } else if ("agentRole" in event && event.agentRole) {
+      role = event.agentRole;
+      actTitle = `${event.agentRole}`;
+    } else if (event.type.startsWith("SANDBOX_")) {
+      actTitle = "SYSTEM // SANDBOX";
+    } else if (event.type.startsWith("EXECUTION_")) {
+      actTitle = "BUILDER // EXECUTION";
     }
 
-    if (event.type === "TERMINAL_OUTPUT") {
+    if (event.type === "TERMINAL_OUTPUT" || event.type === "EXECUTION_OUTPUT") {
       return; // Handled by terminal-slice
     }
 

@@ -9,6 +9,8 @@ export type EventListener<T extends LegionEvent = LegionEvent> = (event: T) => v
 // callers still get full autocomplete/checking for their specific event type.
 export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
 
+export type EmittableLegionEvent = DistributiveOmit<LegionEvent, "id" | "timestamp" | "seq">;
+
 export interface SubscribeOptions {
   /** When set, the listener only receives events for this mission. */
   missionId?: string;
@@ -74,7 +76,7 @@ class LegionEventBus {
    * semantic payload, which guarantees every event is uniquely and
    * monotonically identifiable regardless of call site.
    */
-  public emit<T extends LegionEvent>(eventInput: DistributiveOmit<T, "id" | "timestamp" | "seq">): void {
+  public emit(eventInput: EmittableLegionEvent): void {
     this.seqCounter += 1;
     const seq = this.seqCounter;
     const prefix = (eventInput as { type: LegionEventType }).type === "TERMINAL_OUTPUT" ? "term" : "evt";
@@ -83,7 +85,7 @@ class LegionEventBus {
       id: this.generateId(prefix, seq),
       timestamp: new Date().toISOString(),
       seq,
-    } as unknown as T;
+    } as unknown as LegionEvent;
 
     // Record in memory history
     this.eventHistory.unshift(event);
