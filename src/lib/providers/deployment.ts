@@ -13,6 +13,7 @@ export interface DeploymentProvider {
   deploy(directory: string, environment?: "preview" | "staging" | "production"): Promise<DeploymentResult>;
   status(deploymentId: string): Promise<DeploymentResult>;
   logs(deploymentId: string): Promise<string[]>;
+  cancel(deploymentId: string): Promise<boolean>;
 }
 
 export class MockDeploymentProvider implements DeploymentProvider {
@@ -47,5 +48,9 @@ export class MockDeploymentProvider implements DeploymentProvider {
       "Optimizing images...",
       "Deployment complete at https://legion-mission-preview.internal.app",
     ];
+  }
+
+  async cancel(_deploymentId: string): Promise<boolean> {
+    return true;
   }
 }

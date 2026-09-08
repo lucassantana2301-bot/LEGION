@@ -25,6 +25,8 @@ export interface LLMGenerateOptions {
   maxTokens?: number;
   tools?: LLMToolDefinition[];
   systemPrompt?: string;
+  timeoutMs?: number;
+  abortSignal?: AbortSignal;
 }
 
 export interface LLMGenerateResult {
@@ -35,7 +37,10 @@ export interface LLMGenerateResult {
     completion: number;
     total: number;
   };
-  finishReason: "stop" | "tool_calls" | "length" | "error";
+  finishReason: "stop" | "tool_calls" | "length" | "error" | "aborted";
+  provider: string;
+  model: string;
+  costUsd?: number;
 }
 
 export interface LLMProvider {
@@ -54,12 +59,25 @@ export interface LLMProvider {
 export class MockLLMProvider implements LLMProvider {
   name = "mock-llm-provider";
 
-  async generate(messages: LLMMessage[], _options?: LLMGenerateOptions): Promise<LLMGenerateResult> {
+  async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMGenerateResult> {
+    if (options?.abortSignal?.aborted) {
+      return {
+        content: "",
+        tokens: { prompt: 0, completion: 0, total: 0 },
+        finishReason: "aborted",
+        provider: this.name,
+        model: options?.model ?? "mock-v1",
+      };
+    }
+
     const lastMessage = messages[messages.length - 1]?.content || "";
     return {
       content: `[LEGION MOCK LLM]: Analyzed context. Prepared execution strategy for: "${lastMessage.slice(0, 80)}..."`,
       tokens: { prompt: 140, completion: 85, total: 225 },
       finishReason: "stop",
+      provider: this.name,
+      model: options?.model ?? "mock-v1",
+      costUsd: 0,
     };
   }
 

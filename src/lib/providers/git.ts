@@ -14,10 +14,18 @@ export interface GitDiffFile {
   deletions: number;
 }
 
+export interface GitStatusResult {
+  branch: string;
+  isDirty: boolean;
+  ahead: number;
+  behind: number;
+}
+
 export interface GitProvider {
   name: string;
   clone(repoUrl: string, targetDir: string): Promise<boolean>;
   branch(name: string, fromBranch?: string): Promise<void>;
+  status(): Promise<GitStatusResult>;
   diff(): Promise<GitDiffFile[]>;
   commit(message: string, author?: string): Promise<GitCommitResult>;
   push(remote?: string, branch?: string): Promise<boolean>;
@@ -31,6 +39,15 @@ export class MockGitProvider implements GitProvider {
   }
 
   async branch(_name: string): Promise<void> {}
+
+  async status(): Promise<GitStatusResult> {
+    return {
+      branch: "legion/mission-001",
+      isDirty: true,
+      ahead: 0,
+      behind: 0,
+    };
+  }
 
   async diff(): Promise<GitDiffFile[]> {
     return [
