@@ -144,14 +144,11 @@ export const useTasksSlice = create<TasksSliceState>((set) => {
             missionId: event.missionId,
             taskId: event.taskId,
             title: event.title,
-            description: "Authentication redirect does not preserve callback URL.",
+            description: event.message,
             severity: event.severity,
             status: event.status,
             reportedByRole: event.reportedByRole,
             assignedToRole: event.assignedToRole,
-            stackTrace: "AssertionError: callbackUrl param was not preserved during redirect\n  at src/lib/auth.ts:42",
-            affectedFile: "src/lib/auth.ts",
-            proposedFix: "Extract callbackUrl query param and pass to redirect destination.",
             createdAt: nowIso,
           };
           return {

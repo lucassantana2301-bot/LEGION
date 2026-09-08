@@ -183,6 +183,8 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
 
     respondToApproval: (approvalId: string, approved: boolean, note?: string) => {
       const now = new Date().toISOString();
+      const approval = get().approvals.find((a) => a.id === approvalId);
+
       set((s) => ({
         approvals: s.approvals.map((a) =>
           a.id === approvalId
@@ -202,10 +204,12 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
         timestamp: now,
         type: approved ? "APPROVAL_GRANTED" : "APPROVAL_REJECTED",
         approvalId,
-        actionTitle: "Run production database migration",
-        risk: "HIGH",
-        reason: note || (approved ? "Human approved migration." : "Human rejected migration."),
-        message: approved ? "Human granted approval for database migration." : "Human rejected database migration.",
+        actionTitle: approval?.actionTitle ?? "Unknown action",
+        risk: approval?.risk ?? "MEDIUM",
+        reason: note || (approved ? "Human approved action." : "Human rejected action."),
+        message: approved
+          ? `Human granted approval for "${approval?.actionTitle ?? approvalId}".`
+          : `Human rejected "${approval?.actionTitle ?? approvalId}".`,
       });
     },
   };

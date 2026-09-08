@@ -11,6 +11,8 @@ export interface TerminalSliceState {
   initialize: () => void;
 }
 
+const MAX_TERMINAL_LINES = 500;
+
 export const useTerminalSlice = create<TerminalSliceState>((set) => {
   let isSubscribed = false;
 
@@ -25,7 +27,7 @@ export const useTerminalSlice = create<TerminalSliceState>((set) => {
             stream: event.stream,
             text: event.text,
           },
-        ],
+        ].slice(-MAX_TERMINAL_LINES),
       }));
     }
   };
