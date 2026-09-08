@@ -16,11 +16,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
 
 export default function HomePage() {
   const router = useRouter();
-  const { startMission } = useMissionStore();
+  const startMission = useMissionSlice((s) => s.startMission);
 
   const [prompt, setPrompt] = useState("");
   const [step, setStep] = useState<"INPUT" | "ANALYZING" | "PLAN_REVIEW">("INPUT");

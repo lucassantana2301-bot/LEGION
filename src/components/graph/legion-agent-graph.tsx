@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useMissionStore } from "@/stores/mission-store";
+import { useAgentsSlice } from "@/stores/agents-slice";
+import { useActivitySlice } from "@/stores/activity-slice";
 import { AgentRole } from "@/types/domain";
 import { Compass, Box, Hammer, ShieldAlert } from "lucide-react";
 
 export const LegionAgentGraph: React.FC = () => {
-  const { agents, activeCommunication } = useMissionStore();
+  const agents = useAgentsSlice((s) => s.agents);
+  const activeCommunication = useActivitySlice((s) => s.activeCommunication);
   const [pulseLine, setPulseLine] = useState<string | null>(null);
 
   useEffect(() => {

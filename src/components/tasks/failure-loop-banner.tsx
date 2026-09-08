@@ -4,10 +4,11 @@ import React from "react";
 import { AlertOctagon, CheckCircle2, ArrowRight, ShieldAlert, Hammer, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useTasksSlice } from "@/stores/tasks-slice";
 
 export const FailureLoopBanner: React.FC = () => {
-  const { issues, tasks } = useMissionStore();
+  const issues = useTasksSlice((s) => s.issues);
+  const tasks = useTasksSlice((s) => s.tasks);
 
   const activeIssue = issues.find((i) => i.id === "ISSUE-004");
   const relatedTask = tasks.find((t) => t.id === "TASK-008");

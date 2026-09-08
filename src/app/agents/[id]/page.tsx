@@ -6,7 +6,7 @@ import { Compass, Box, Hammer, ShieldAlert, Cpu, CheckCircle2, AlertTriangle, La
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Card } from "@/components/ui/card";
-import { useMissionStore } from "@/stores/mission-store";
+import { useAgentsSlice } from "@/stores/agents-slice";
 import { AgentRole } from "@/types/domain";
 
 export default function AgentProfilePage({
@@ -14,7 +14,7 @@ export default function AgentProfilePage({
 }: {
   params: { id: string };
 }) {
-  const { agents } = useMissionStore();
+  const agents = useAgentsSlice((s) => s.agents);
   const rawRole = (params.id?.toUpperCase() || "COMMANDER") as AgentRole;
   const agent = agents[rawRole] || agents.COMMANDER;
 

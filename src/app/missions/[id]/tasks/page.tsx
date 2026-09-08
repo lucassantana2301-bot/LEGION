@@ -4,10 +4,11 @@ import React from "react";
 import { CheckSquare, Filter, Layers, Clock, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
-import { useMissionStore } from "@/stores/mission-store";
+import { useTasksSlice } from "@/stores/tasks-slice";
 
 export default function TasksPage() {
-  const { tasks, selectTask } = useMissionStore();
+  const tasks = useTasksSlice((s) => s.tasks);
+  const selectTask = useTasksSlice((s) => s.selectTask);
 
   return (
     <div className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full font-mono">

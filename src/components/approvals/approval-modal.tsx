@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import { AlertTriangle, ShieldCheck, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
 
 export const ApprovalModal: React.FC = () => {
-  const { approvals, respondToApproval } = useMissionStore();
+  const approvals = useMissionSlice((s) => s.approvals);
+  const respondToApproval = useMissionSlice((s) => s.respondToApproval);
   const [note, setNote] = useState("");
 
   const pendingApproval = approvals.find((a) => a.status === "PENDING");

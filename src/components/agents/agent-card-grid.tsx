@@ -6,11 +6,11 @@ import { Compass, Box, Hammer, ShieldAlert, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useAgentsSlice } from "@/stores/agents-slice";
 import { AgentRole } from "@/types/domain";
 
 export const AgentCardGrid: React.FC = () => {
-  const { agents } = useMissionStore();
+  const agents = useAgentsSlice((s) => s.agents);
 
   const agentConfig: Record<
     AgentRole,

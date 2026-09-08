@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { useMissionStore } from "@/stores/mission-store";
+import { useActivitySlice } from "@/stores/activity-slice";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, CheckCircle, Info, XCircle } from "lucide-react";
 import { AgentRole } from "@/types/domain";
 
 export const LiveActivityFeed: React.FC = () => {
-  const { activities } = useMissionStore();
+  const activities = useActivitySlice((s) => s.activities);
 
   const getRoleBadgeVariant = (role?: AgentRole) => {
     switch (role) {

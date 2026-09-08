@@ -3,11 +3,11 @@
 import React, { useState } from "react";
 import { Send, Terminal, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
 
 export const LegionCommandInput: React.FC = () => {
   const [command, setCommand] = useState("");
-  const { sendUserCommand } = useMissionStore();
+  const sendUserCommand = useMissionSlice((s) => s.sendUserCommand);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

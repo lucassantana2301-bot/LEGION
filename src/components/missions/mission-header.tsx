@@ -5,17 +5,15 @@ import { Play, Pause, Square, Terminal, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
 
 export const MissionHeader: React.FC = () => {
-  const {
-    mission,
-    elapsedSeconds,
-    pauseMission,
-    resumeMission,
-    stopMission,
-    startMission,
-  } = useMissionStore();
+  const mission = useMissionSlice((s) => s.mission);
+  const elapsedSeconds = useMissionSlice((s) => s.elapsedSeconds);
+  const pauseMission = useMissionSlice((s) => s.pauseMission);
+  const resumeMission = useMissionSlice((s) => s.resumeMission);
+  const stopMission = useMissionSlice((s) => s.stopMission);
+  const startMission = useMissionSlice((s) => s.startMission);
 
   const formatElapsed = (sec: number) => {
     const mins = Math.floor(sec / 60);

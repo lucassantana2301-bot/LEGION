@@ -15,13 +15,16 @@ import {
   Terminal,
   X,
 } from "lucide-react";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
 
 export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const router = useRouter();
-  const { pauseMission, resumeMission, mission, startMission } = useMissionStore();
+  const pauseMission = useMissionSlice((s) => s.pauseMission);
+  const resumeMission = useMissionSlice((s) => s.resumeMission);
+  const mission = useMissionSlice((s) => s.mission);
+  const startMission = useMissionSlice((s) => s.startMission);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

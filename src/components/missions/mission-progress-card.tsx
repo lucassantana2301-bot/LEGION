@@ -3,11 +3,14 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useMissionSlice } from "@/stores/mission-slice";
+import { useTasksSlice } from "@/stores/tasks-slice";
 import { Layers, CheckCircle2, AlertTriangle, Cpu, DollarSign, Activity } from "lucide-react";
 
 export const MissionProgressCard: React.FC = () => {
-  const { mission, tasks, issues } = useMissionStore();
+  const mission = useMissionSlice((s) => s.mission);
+  const tasks = useTasksSlice((s) => s.tasks);
+  const issues = useTasksSlice((s) => s.issues);
 
   const completedCount = tasks.filter((t) => t.status === "COMPLETED").length;
   const totalCount = tasks.length;

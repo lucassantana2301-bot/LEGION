@@ -3,10 +3,10 @@
 import React from "react";
 import { AlertOctagon, ShieldAlert, CheckCircle2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useMissionStore } from "@/stores/mission-store";
+import { useTasksSlice } from "@/stores/tasks-slice";
 
 export default function IssuesPage() {
-  const { issues } = useMissionStore();
+  const issues = useTasksSlice((s) => s.issues);
 
   return (
     <div className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full font-mono">

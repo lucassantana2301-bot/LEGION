@@ -4,10 +4,13 @@ import React from "react";
 import { X, CheckCircle2, AlertOctagon, FileCode, Clock, ShieldCheck, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusDot } from "@/components/ui/status-dot";
-import { useMissionStore } from "@/stores/mission-store";
+import { useTasksSlice } from "@/stores/tasks-slice";
 
 export const TaskDetailModal: React.FC = () => {
-  const { tasks, issues, selectedTaskId, selectTask } = useMissionStore();
+  const tasks = useTasksSlice((s) => s.tasks);
+  const issues = useTasksSlice((s) => s.issues);
+  const selectedTaskId = useTasksSlice((s) => s.selectedTaskId);
+  const selectTask = useTasksSlice((s) => s.selectTask);
 
   if (!selectedTaskId) return null;
 

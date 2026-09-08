@@ -2,10 +2,11 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Terminal, Copy, Trash2, Pause, Play, Check } from "lucide-react";
-import { useMissionStore } from "@/stores/mission-store";
+import { useTerminalSlice } from "@/stores/terminal-slice";
 
 export const LegionTerminal: React.FC = () => {
-  const { terminalLogs, clearTerminal } = useMissionStore();
+  const terminalLogs = useTerminalSlice((s) => s.terminalLogs);
+  const clearTerminal = useTerminalSlice((s) => s.clearTerminal);
   const [autoScroll, setAutoScroll] = useState(true);
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
