@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@e2b/code-interpreter": "^2.7.2",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.3",

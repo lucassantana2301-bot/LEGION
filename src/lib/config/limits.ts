@@ -1,22 +1,46 @@
 // Execution guardrails read from environment configuration (see .env.example).
-//
-// Only MAX_MISSION_ITERATIONS has a real enforcement point today (the mission
-// engine's step loop). MAX_AGENT_RETRIES, MAX_MISSION_COST_USD, and
-// SANDBOX_TIMEOUT_MS have no actual retry loop, cost accumulator, or sandbox
-// call to attach to yet — wiring enforcement for those now would be
-// speculative. They will be enforced once Phase 02B/02D introduce the real
-// agent/sandbox execution they govern.
 
 export interface ExecutionLimits {
   maxMissionIterations: number;
+  sandboxTimeoutMs: number;
+  maxOutputBytes: number;
+  maxTerminalLines: number;
 }
 
 const DEFAULT_MAX_MISSION_ITERATIONS = 50;
+const DEFAULT_SANDBOX_TIMEOUT_MS = 30000;
+const DEFAULT_MAX_OUTPUT_BYTES = 65536; // 64 KB
+const DEFAULT_MAX_TERMINAL_LINES = 500;
 
 export function getExecutionLimits(): ExecutionLimits {
-  const raw = process.env.MAX_MISSION_ITERATIONS;
-  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+  const rawIterations = process.env.MAX_MISSION_ITERATIONS;
+  const parsedIterations = rawIterations ? Number.parseInt(rawIterations, 10) : NaN;
+
+  const rawTimeout = process.env.SANDBOX_TIMEOUT_MS;
+  const parsedTimeout = rawTimeout ? Number.parseInt(rawTimeout, 10) : NaN;
+
+  const rawMaxBytes = process.env.MAX_OUTPUT_BYTES;
+  const parsedMaxBytes = rawMaxBytes ? Number.parseInt(rawMaxBytes, 10) : NaN;
+
+  const rawMaxLines = process.env.MAX_TERMINAL_LINES;
+  const parsedMaxLines = rawMaxLines ? Number.parseInt(rawMaxLines, 10) : NaN;
+
   return {
-    maxMissionIterations: Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_MISSION_ITERATIONS,
+    maxMissionIterations:
+      Number.isFinite(parsedIterations) && parsedIterations > 0
+        ? parsedIterations
+        : DEFAULT_MAX_MISSION_ITERATIONS,
+    sandboxTimeoutMs:
+      Number.isFinite(parsedTimeout) && parsedTimeout > 0
+        ? parsedTimeout
+        : DEFAULT_SANDBOX_TIMEOUT_MS,
+    maxOutputBytes:
+      Number.isFinite(parsedMaxBytes) && parsedMaxBytes > 0
+        ? parsedMaxBytes
+        : DEFAULT_MAX_OUTPUT_BYTES,
+    maxTerminalLines:
+      Number.isFinite(parsedMaxLines) && parsedMaxLines > 0
+        ? parsedMaxLines
+        : DEFAULT_MAX_TERMINAL_LINES,
   };
 }
