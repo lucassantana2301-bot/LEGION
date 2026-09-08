@@ -158,11 +158,8 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
     },
 
     sendUserCommand: (commandText: string) => {
-      const now = new Date().toISOString();
       legionEventBus.emit({
-        id: `usr_${Date.now()}`,
         missionId: get().mission.id,
-        timestamp: now,
         type: "TERMINAL_OUTPUT",
         stream: "COMMAND",
         text: `> user@legion: ${commandText}`,
@@ -170,9 +167,7 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
 
       // Dispatched command instruction event to orchestrator
       legionEventBus.emit({
-        id: `cmd_resp_${Date.now()}`,
         missionId: get().mission.id,
-        timestamp: new Date().toISOString(),
         type: "AGENT_WORKING",
         role: "COMMANDER",
         status: "WORKING",
@@ -199,9 +194,7 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
       }));
 
       legionEventBus.emit({
-        id: `app_evt_${Date.now()}`,
         missionId: get().mission.id,
-        timestamp: now,
         type: approved ? "APPROVAL_GRANTED" : "APPROVAL_REJECTED",
         approvalId,
         actionTitle: approval?.actionTitle ?? "Unknown action",

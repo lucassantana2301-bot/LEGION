@@ -2,14 +2,15 @@
 // Deterministic multi-agent execution simulation for Phase 01
 
 import { legionEventBus } from "@/lib/events/bus";
-import { AgentRole, Issue, Task } from "@/types/domain";
+import { getExecutionLimits } from "@/lib/config/limits";
+import { MissionEngine, MissionEngineStatus } from "@/lib/engine/mission-engine";
 
 export interface DemoStep {
   delayMs: number;
   action: () => void;
 }
 
-export class DemoMissionEngine {
+export class DemoMissionEngine implements MissionEngine {
   private missionId: string;
   private isRunning: boolean = false;
   private isPaused: boolean = false;
@@ -20,7 +21,7 @@ export class DemoMissionEngine {
     this.missionId = missionId;
   }
 
-  public getStatus() {
+  public getStatus(): MissionEngineStatus {
     return {
       missionId: this.missionId,
       isRunning: this.isRunning,
@@ -44,9 +45,7 @@ export class DemoMissionEngine {
       this.timer = null;
     }
     legionEventBus.emit({
-      id: `evt_${Date.now()}`,
       missionId: this.missionId,
-      timestamp: new Date().toISOString(),
       type: "MISSION_PAUSED",
       title: "Mission Paused",
       message: "Orchestration paused by user.",
@@ -57,9 +56,7 @@ export class DemoMissionEngine {
     if (!this.isPaused) return;
     this.isPaused = false;
     legionEventBus.emit({
-      id: `evt_${Date.now()}`,
       missionId: this.missionId,
-      timestamp: new Date().toISOString(),
       type: "MISSION_RESUMED",
       title: "Mission Resumed",
       message: "Orchestration resumed.",
@@ -79,7 +76,6 @@ export class DemoMissionEngine {
 
   private getSteps(): DemoStep[] {
     const mId = this.missionId;
-    const now = () => new Date().toISOString();
 
     return [
       // STEP 0: Mission start
@@ -87,26 +83,20 @@ export class DemoMissionEngine {
         delayMs: 300,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "MISSION_STARTED",
             title: "Mission Initialized",
             progressPercent: 5,
             message: "COMMANDER initiated mission workflow.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SYSTEM",
             text: "[LEGION ORCHESTRATOR] Mission initialized: Financial SaaS with Auth, PostgreSQL & Analytics.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_agent`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "COMMANDER",
             status: "WORKING",
@@ -120,9 +110,7 @@ export class DemoMissionEngine {
         delayMs: 1400,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_COMMUNICATION",
             role: "COMMANDER",
             targetRole: "ARCHITECT",
@@ -130,9 +118,7 @@ export class DemoMissionEngine {
             message: "COMMANDER → ARCHITECT: Formulate database schema, tech stack & API contract.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_arch`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "ARCHITECT",
             status: "WORKING",
@@ -140,9 +126,7 @@ export class DemoMissionEngine {
             message: "Synthesizing schema definitions and security boundaries...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "COMMAND",
             text: "> legion architect generate --spec=financial-saas --db=postgresql",
@@ -154,9 +138,7 @@ export class DemoMissionEngine {
         delayMs: 1800,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_file1`,
             missionId: mId,
-            timestamp: now(),
             type: "FILE_CREATED",
             path: "src/lib/db/schema.ts",
             agentRole: "ARCHITECT",
@@ -164,9 +146,7 @@ export class DemoMissionEngine {
             message: "ARCHITECT created database schema definitions (Drizzle ORM).",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_arch_done`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_COMPLETED",
             role: "ARCHITECT",
             status: "IDLE",
@@ -174,9 +154,7 @@ export class DemoMissionEngine {
             message: "System architecture ready and locked.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SUCCESS",
             text: "✓ Architecture verified: PostgreSQL + Drizzle ORM + Next.js App Router.",
@@ -188,9 +166,7 @@ export class DemoMissionEngine {
         delayMs: 1200,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_comm_assign`,
             missionId: mId,
-            timestamp: now(),
             type: "TASK_ASSIGNED",
             taskId: "TASK-008",
             taskTitle: "Implement authentication & session management",
@@ -200,9 +176,7 @@ export class DemoMissionEngine {
             message: "COMMANDER assigned TASK-008 to BUILDER.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_builder_work`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "BUILDER",
             status: "WORKING",
@@ -210,9 +184,7 @@ export class DemoMissionEngine {
             message: "Writing JWT/Session handlers & OAuth callback flow...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "COMMAND",
             text: "> legion builder exec --task=TASK-008",
@@ -224,9 +196,7 @@ export class DemoMissionEngine {
         delayMs: 1600,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_file2`,
             missionId: mId,
-            timestamp: now(),
             type: "FILE_CREATED",
             path: "src/lib/auth.ts",
             agentRole: "BUILDER",
@@ -234,9 +204,7 @@ export class DemoMissionEngine {
             message: "BUILDER created session token verification and middleware handler.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_file3`,
             missionId: mId,
-            timestamp: now(),
             type: "FILE_CREATED",
             path: "src/app/api/auth/route.ts",
             agentRole: "BUILDER",
@@ -244,9 +212,7 @@ export class DemoMissionEngine {
             message: "BUILDER created auth endpoints.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "STDOUT",
             text: "src/lib/auth.ts generated [88 lines]\nsrc/app/api/auth/route.ts generated [64 lines]",
@@ -258,9 +224,7 @@ export class DemoMissionEngine {
         delayMs: 1400,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_task_rev`,
             missionId: mId,
-            timestamp: now(),
             type: "TASK_REVIEW",
             taskId: "TASK-008",
             taskTitle: "Implement authentication",
@@ -270,9 +234,7 @@ export class DemoMissionEngine {
             message: "BUILDER → SENTINEL: Task ready for test suite validation.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_sentinel_work`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "SENTINEL",
             status: "WORKING",
@@ -280,9 +242,7 @@ export class DemoMissionEngine {
             message: "Executing authentication integration test suite...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "COMMAND",
             text: "> npx vitest run tests/auth.test.ts",
@@ -294,9 +254,7 @@ export class DemoMissionEngine {
         delayMs: 2000,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_test_fail`,
             missionId: mId,
-            timestamp: now(),
             type: "TEST_FAILED",
             taskId: "TASK-008",
             suiteName: "tests/auth.test.ts",
@@ -307,9 +265,7 @@ export class DemoMissionEngine {
             message: "SENTINEL: Test failed — Authentication redirect does not preserve callback URL.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_issue_create`,
             missionId: mId,
-            timestamp: now(),
             type: "ISSUE_CREATED",
             issueId: "ISSUE-004",
             taskId: "TASK-008",
@@ -321,9 +277,7 @@ export class DemoMissionEngine {
             message: "ISSUE-004 logged by SENTINEL with HIGH severity.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "STDERR",
             text: "✕ FAIL tests/auth.test.ts > Auth Flow > preserves redirect callbackUrl\nAssertionError: expected undefined to equal '/dashboard'\n  at src/lib/auth.ts:42:15",
@@ -335,9 +289,7 @@ export class DemoMissionEngine {
         delayMs: 1500,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_issue_assign`,
             missionId: mId,
-            timestamp: now(),
             type: "ISSUE_ASSIGNED",
             issueId: "ISSUE-004",
             taskId: "TASK-008",
@@ -349,9 +301,7 @@ export class DemoMissionEngine {
             message: "COMMANDER: Issue #004 reassigned to BUILDER for resolution.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_builder_fix`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "BUILDER",
             status: "WORKING",
@@ -359,9 +309,7 @@ export class DemoMissionEngine {
             message: "Refactoring redirect searchParams propagation...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SYSTEM",
             text: "[LOOP TRIAGE] Commander intercepted failure. Dispatched hotfix instructions to Builder.",
@@ -373,9 +321,7 @@ export class DemoMissionEngine {
         delayMs: 1800,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_file_mod`,
             missionId: mId,
-            timestamp: now(),
             type: "FILE_MODIFIED",
             path: "src/lib/auth.ts",
             agentRole: "BUILDER",
@@ -383,9 +329,7 @@ export class DemoMissionEngine {
             message: "BUILDER modified src/lib/auth.ts — Preserved callbackUrl search query.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "STDOUT",
             text: "src/lib/auth.ts updated (+6 lines, -2 lines). Fix applied.",
@@ -397,9 +341,7 @@ export class DemoMissionEngine {
         delayMs: 1400,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_sentinel_retest`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_WORKING",
             role: "SENTINEL",
             status: "WORKING",
@@ -407,9 +349,7 @@ export class DemoMissionEngine {
             message: "Running full regression suite...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "COMMAND",
             text: "> npx vitest run tests/auth.test.ts --reporter=verbose",
@@ -421,9 +361,7 @@ export class DemoMissionEngine {
         delayMs: 1700,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_test_pass`,
             missionId: mId,
-            timestamp: now(),
             type: "TEST_PASSED",
             taskId: "TASK-008",
             suiteName: "tests/auth.test.ts",
@@ -433,9 +371,7 @@ export class DemoMissionEngine {
             message: "SENTINEL: All 10 test cases passed successfully.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_issue_resolve`,
             missionId: mId,
-            timestamp: now(),
             type: "ISSUE_RESOLVED",
             issueId: "ISSUE-004",
             taskId: "TASK-008",
@@ -447,9 +383,7 @@ export class DemoMissionEngine {
             message: "ISSUE-004 marked as RESOLVED by SENTINEL.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_task_done`,
             missionId: mId,
-            timestamp: now(),
             type: "TASK_COMPLETED",
             taskId: "TASK-008",
             taskTitle: "Implement authentication",
@@ -459,9 +393,7 @@ export class DemoMissionEngine {
             message: "TASK-008 marked COMPLETED.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SUCCESS",
             text: "✓ tests/auth.test.ts (10 tests passed, 0 failures, 142ms)",
@@ -473,17 +405,13 @@ export class DemoMissionEngine {
         delayMs: 1400,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_build_start`,
             missionId: mId,
-            timestamp: now(),
             type: "BUILD_STARTED",
             environment: "production",
             message: "Building production bundle...",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "COMMAND",
             text: "> npm run build",
@@ -495,18 +423,14 @@ export class DemoMissionEngine {
         delayMs: 1800,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_build_done`,
             missionId: mId,
-            timestamp: now(),
             type: "BUILD_COMPLETED",
             environment: "production",
             durationMs: 1850,
             message: "Production build verified with zero errors.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SUCCESS",
             text: "✓ Compiled successfully\n✓ Type checking: 0 errors\n✓ Static pages generated (14/14)\nBUILD SUCCESSFUL",
@@ -518,27 +442,21 @@ export class DemoMissionEngine {
         delayMs: 1200,
         action: () => {
           legionEventBus.emit({
-            id: `evt_${Date.now()}_mission_done`,
             missionId: mId,
-            timestamp: now(),
             type: "MISSION_COMPLETED",
             title: "Mission Completed Successfully",
             progressPercent: 100,
             message: "All tasks verified and ready for deployment.",
           });
           legionEventBus.emit({
-            id: `evt_${Date.now()}_commander_idle`,
             missionId: mId,
-            timestamp: now(),
             type: "AGENT_COMPLETED",
             role: "COMMANDER",
             status: "IDLE",
             message: "COMMANDER completed mission orchestration.",
           });
           legionEventBus.emit({
-            id: `term_${Date.now()}`,
             missionId: mId,
-            timestamp: now(),
             type: "TERMINAL_OUTPUT",
             stream: "SUCCESS",
             text: "==================================================\n[LEGION] MISSION COMPLETE: 12/12 Tasks Verified\n==================================================",
@@ -551,6 +469,20 @@ export class DemoMissionEngine {
 
   private executeNextStep() {
     if (!this.isRunning || this.isPaused) return;
+
+    const { maxMissionIterations } = getExecutionLimits();
+    if (this.currentStepIndex >= maxMissionIterations) {
+      this.isRunning = false;
+      this.isPaused = false;
+      legionEventBus.emit({
+        missionId: this.missionId,
+        type: "MISSION_FAILED",
+        title: "Mission Failed",
+        message: `Mission stopped: exceeded MAX_MISSION_ITERATIONS (${maxMissionIterations}).`,
+      });
+      return;
+    }
+
     const steps = this.getSteps();
 
     if (this.currentStepIndex >= steps.length) {

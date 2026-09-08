@@ -54,6 +54,7 @@ export interface BaseEventPayload {
   id: string;
   missionId: string;
   timestamp: string;
+  seq: number;
   type: LegionEventType;
 }
 
