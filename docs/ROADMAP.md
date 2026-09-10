@@ -22,12 +22,21 @@
 - [x] Sandbox file operations (write, read, list) & path traversal containment
 - [x] Cancellation via AbortSignal & timeout enforcement
 
-### Phase 02C: Real LLM Agent Orchestration
-- [ ] Connect live LLM providers (Anthropic Claude 3.5 Sonnet / OpenAI GPT-4o / Gemini)
-- [ ] Real Commander planning & task decomposition with structured schema outputs
-- [ ] Real Builder autonomous code generation targeting sandbox
+### Phase 02C: First Real LLM Agent — Builder (Completed)
+- [x] Vendor-agnostic LLM provider abstraction (`AnthropicLLMProvider`, `OpenAILLMProvider`, `MockLLMProvider`)
+- [x] Autonomous Builder agent state machine (`IDLE`, `THINKING`, `PLANNING`, `EXECUTING_TOOL`, `OBSERVING`, `COMPLETED`, `FAILED`)
+- [x] Restricted tool layer (`writeFile`, `readFile`, `listFiles`, `executeSafeCommand`)
+- [x] Self-healing loop (compilation/runtime failure -> error observation -> code fix -> verification)
+- [x] Prompt injection defenses and untrusted data boundary
+- [x] NDJSON streaming API `/api/agent/builder` and Mission Control `RealBuilderCard`
+- [x] Token, cost, and duration telemetry tracking
 
-### Phase 03: VCS Integration & Multi-agent Scaling
+### Phase 03: Multi-Agent Orchestration — Commander & Sentinel
+- [ ] Real Commander planning & task graph decomposition with structured schema outputs
+- [ ] Real Sentinel QA gatekeeper, automated test verification & regression analysis
+- [ ] Agent-to-agent structured messaging and coordination
+
+### Phase 04: VCS Integration & Multi-agent Scaling
 - [ ] GitHub App integration (branch creation, PR comments, commit verification)
 - [ ] Dynamic agent scaling (adding Security Specialist, Performance Auditor, DevOps agents)
 - [ ] Self-improving codebase memory & vector indexing

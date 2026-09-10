@@ -13,7 +13,7 @@ export interface TasksSliceState {
   initialize: () => void;
 }
 
-const INITIAL_TASKS: Task[] = [
+export const DEMO_TASKS: Task[] = [
   {
     id: "TASK-001",
     missionId: "mission-001",
@@ -115,6 +115,24 @@ const INITIAL_TASKS: Task[] = [
   },
 ];
 
+export const DEMO_ISSUES: Issue[] = [
+  {
+    id: "ISSUE-004",
+    missionId: "mission-001",
+    taskId: "TASK-008",
+    title: "Authentication redirect does not preserve callback URL",
+    description: "When unauthenticated users visit protected routes, the login redirect forgets their destination query parameter.",
+    severity: "HIGH",
+    status: "OPEN",
+    reportedByRole: "SENTINEL",
+    assignedToRole: "BUILDER",
+    stackTrace: "AssertionError: expected undefined to equal '/dashboard'\n  at src/lib/auth.ts:42:15",
+    affectedFile: "src/lib/auth.ts",
+    proposedFix: "Preserve callbackUrl parameter in authorization redirect middleware.",
+    createdAt: new Date(Date.now() - 240000).toISOString(),
+  },
+];
+
 export const useTasksSlice = create<TasksSliceState>((set) => {
   let isSubscribed = false;
 
@@ -128,13 +146,38 @@ export const useTasksSlice = create<TasksSliceState>((set) => {
       case "TASK_COMPLETED":
       case "TASK_FAILED":
       case "TASK_BLOCKED":
-        set((s) => ({
-          tasks: s.tasks.map((t) =>
-            t.id === event.taskId
-              ? { ...t, status: event.status, assignedRole: event.assignedRole, updatedAt: nowIso }
-              : t
-          ),
-        }));
+        set((s) => {
+          const exists = s.tasks.some((t) => t.id === event.taskId);
+          if (!exists) {
+            const newTask: Task = {
+              id: event.taskId,
+              missionId: event.missionId,
+              order: s.tasks.length + 1,
+              title: ("taskTitle" in event && event.taskTitle) ? event.taskTitle : event.taskId,
+              description: "",
+              assignedRole: event.assignedRole,
+              status: event.status,
+              priority: ("priority" in event && event.priority) ? event.priority : "MEDIUM",
+              dependencies: [],
+              attempts: 1,
+              maxAttempts: 3,
+              acceptanceCriteria: [],
+              affectedFiles: [],
+              testIds: [],
+              issueIds: [],
+              createdAt: nowIso,
+              updatedAt: nowIso,
+            };
+            return { tasks: [...s.tasks, newTask] };
+          }
+          return {
+            tasks: s.tasks.map((t) =>
+              t.id === event.taskId
+                ? { ...t, status: event.status, assignedRole: event.assignedRole, updatedAt: nowIso }
+                : t
+            ),
+          };
+        });
         break;
 
       case "ISSUE_CREATED":
@@ -175,24 +218,8 @@ export const useTasksSlice = create<TasksSliceState>((set) => {
   };
 
   return {
-    tasks: INITIAL_TASKS,
-    issues: [
-      {
-        id: "ISSUE-004",
-        missionId: "mission-001",
-        taskId: "TASK-008",
-        title: "Authentication redirect does not preserve callback URL",
-        description: "When unauthenticated users visit protected routes, the login redirect forgets their destination query parameter.",
-        severity: "HIGH",
-        status: "OPEN",
-        reportedByRole: "SENTINEL",
-        assignedToRole: "BUILDER",
-        stackTrace: "AssertionError: expected undefined to equal '/dashboard'\n  at src/lib/auth.ts:42:15",
-        affectedFile: "src/lib/auth.ts",
-        proposedFix: "Preserve callbackUrl parameter in authorization redirect middleware.",
-        createdAt: new Date(Date.now() - 240000).toISOString(),
-      },
-    ],
+    tasks: [],
+    issues: [],
     selectedTaskId: null,
     selectTask: (taskId) => set({ selectedTaskId: taskId }),
     initialize: () => {

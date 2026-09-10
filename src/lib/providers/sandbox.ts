@@ -31,45 +31,86 @@ export interface SandboxResourceLimits {
   diskMb?: number;
 }
 
+export type SandboxExecutionMode = "REAL" | "MOCK" | "UNAVAILABLE";
+
+export interface SandboxExecuteOptions {
+  cwd?: string;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
+// Unforgeable server-side WeakSet registry for authentic real micro-VM provider instances
+const trustedRealProviderRegistry = new WeakSet<object>();
+
+/**
+ * Registers an authentic real sandbox provider instance created strictly by an authorized system factory.
+ * Only internal authorized factories can register an instance.
+ */
+export function registerTrustedRealSandboxProvider<T extends object>(provider: T): T {
+  if (provider && typeof provider === "object") {
+    trustedRealProviderRegistry.add(provider);
+  }
+  return provider;
+}
+
+/**
+ * Checks if a provider is an authentic, registered real sandbox provider instance.
+ * Rejects mocks, forged symbols, copied descriptors, prototype inheritance, Proxies, and custom untrusted objects.
+ */
+export function isTrustedRealProvider(provider: unknown): boolean {
+  if (!provider || typeof provider !== "object") return false;
+  if (!trustedRealProviderRegistry.has(provider as object)) return false;
+  const typed = provider as SandboxProvider;
+  if (typed.executionMode !== "REAL") return false;
+  return true;
+}
+
+/**
+ * Compatibility alias for isTrustedRealProvider
+ */
+export const verifyTrustedRealCapability = isTrustedRealProvider;
+
 export interface SandboxProvider {
   name: string;
+  executionMode?: SandboxExecutionMode;
   create(env?: Record<string, string>, limits?: SandboxResourceLimits): Promise<SandboxInstance>;
   execute(
     sandboxId: string,
     command: string,
     onOutput?: (stream: "stdout" | "stderr", text: string) => void,
     timeoutMs?: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options?: SandboxExecuteOptions
   ): Promise<SandboxExecutionResult>;
   readFile(sandboxId: string, filePath: string): Promise<string>;
   writeFile(sandboxId: string, filePath: string, content: string): Promise<void>;
+  deleteFile(sandboxId: string, filePath: string): Promise<void>;
   listFiles(sandboxId: string, directoryPath: string): Promise<SandboxFileEntry[]>;
   destroy(sandboxId: string): Promise<void>;
 }
 
 /**
  * Resolves a sandbox-relative path against a virtual root and throws SandboxPathError
- * if the result would escape that root (e.g. "../../etc/passwd").
+ * if the result would escape that root (e.g. "../../etc/passwd" or "/home/user2" from "/home/user").
  */
 export function resolveSandboxPath(root: string, requestedPath: string): string {
   if (!requestedPath || typeof requestedPath !== "string") {
     throw new SandboxPathError("Requested path must be a non-empty string.", requestedPath || "");
   }
 
-  const normalizedRoot = root.replace(/\\/g, "/").replace(/\/+$/, "");
+  // Reject NUL bytes or control characters
+  if (requestedPath.includes("\0")) {
+    throw new SandboxPathError("Requested path contains invalid null byte.", requestedPath);
+  }
+
+  const normalizedRoot = root.replace(/\\/g, "/").replace(/\/+$/, "") || "/";
   const normalizedRequested = requestedPath.replace(/\\/g, "/");
 
   // Prevent absolute paths escaping the root if they don't start with root
-  let combined: string;
-  if (normalizedRequested.startsWith("/")) {
-    if (!normalizedRequested.startsWith(normalizedRoot)) {
-      combined = `${normalizedRoot}${normalizedRequested}`;
-    } else {
-      combined = normalizedRequested;
-    }
-  } else {
-    combined = `${normalizedRoot}/${normalizedRequested}`;
-  }
+  // If path is absolute, normalize it directly; otherwise join with root
+  const combined = normalizedRequested.startsWith("/")
+    ? normalizedRequested
+    : `${normalizedRoot}/${normalizedRequested}`;
 
   const segments: string[] = [];
   for (const segment of combined.split("/")) {
@@ -88,12 +129,20 @@ export function resolveSandboxPath(root: string, requestedPath: string): string 
   }
 
   const resolved = "/" + segments.join("/");
-  if (!resolved.startsWith(normalizedRoot)) {
+
+  // Robust boundary check: resolved must either equal normalizedRoot or be a direct subdirectory
+  const isWithinBoundary =
+    normalizedRoot === "/" ||
+    resolved === normalizedRoot ||
+    resolved.startsWith(normalizedRoot + "/");
+
+  if (!isWithinBoundary) {
     throw new SandboxPathError(
-      `Path traversal rejected: "${requestedPath}" escapes sandbox root.`,
+      `Path traversal boundary violation: "${requestedPath}" resolved to "${resolved}" outside root "${normalizedRoot}".`,
       requestedPath
     );
   }
+
   return resolved;
 }
 
@@ -102,9 +151,25 @@ export function resolveSandboxPath(root: string, requestedPath: string): string 
  */
 export class MockSandboxProvider implements SandboxProvider {
   name = "mock-sandbox-provider";
+  public executionMode: SandboxExecutionMode = "MOCK";
   private readonly root = "/workspace";
   private virtualFiles: Map<string, string> = new Map();
   private activeSandboxes: Map<string, SandboxInstance> = new Map();
+  private destroyedSandboxes: Set<string> = new Set();
+
+  private ensureActive(sandboxId: string) {
+    if (!sandboxId || this.destroyedSandboxes.has(sandboxId)) {
+      throw new SandboxUnavailableError(`Sandbox "${sandboxId}" not found or already destroyed.`);
+    }
+    if (!this.activeSandboxes.has(sandboxId)) {
+      this.activeSandboxes.set(sandboxId, {
+        id: sandboxId,
+        status: "RUNNING",
+        createdAt: new Date().toISOString(),
+        provider: "MOCK",
+      });
+    }
+  }
 
   async create(_env?: Record<string, string>, _limits?: SandboxResourceLimits): Promise<SandboxInstance> {
     const id = `mock_sbx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -123,18 +188,17 @@ export class MockSandboxProvider implements SandboxProvider {
     command: string,
     onOutput?: (stream: "stdout" | "stderr", text: string) => void,
     timeoutMs?: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options?: SandboxExecuteOptions
   ): Promise<SandboxExecutionResult> {
-    if (!this.activeSandboxes.has(sandboxId)) {
-      throw new SandboxUnavailableError(`Sandbox "${sandboxId}" not found or already destroyed.`);
-    }
+    this.ensureActive(sandboxId);
 
     if (signal?.aborted) {
       throw new Error("Execution cancelled by signal.");
     }
 
     const limits = getExecutionLimits();
-    const effectiveTimeout = timeoutMs || limits.sandboxTimeoutMs;
+    const effectiveTimeout = timeoutMs || options?.timeoutMs || limits.sandboxTimeoutMs;
     const startTime = Date.now();
 
     // Check for simulated command outputs
@@ -150,7 +214,8 @@ export class MockSandboxProvider implements SandboxProvider {
     } else if (trimmed.startsWith("echo ")) {
       stdout = trimmed.slice(5).replace(/^['"]|['"]$/g, "") + "\n";
     } else if (trimmed === "pwd") {
-      stdout = "/workspace\n";
+      const cwd = options?.cwd && options.cwd !== "." ? `/workspace/${options.cwd.replace(/^\/+/, "")}` : "/workspace";
+      stdout = `${cwd}\n`;
     } else if (trimmed === "whoami") {
       stdout = "user\n";
     } else if (trimmed === "date") {
@@ -180,9 +245,7 @@ export class MockSandboxProvider implements SandboxProvider {
   }
 
   async readFile(sandboxId: string, filePath: string): Promise<string> {
-    if (!this.activeSandboxes.has(sandboxId)) {
-      throw new SandboxUnavailableError(`Sandbox "${sandboxId}" not found.`);
-    }
+    this.ensureActive(sandboxId);
     const safePath = resolveSandboxPath(this.root, filePath);
     const content = this.virtualFiles.get(safePath);
     if (content === undefined) {
@@ -192,18 +255,20 @@ export class MockSandboxProvider implements SandboxProvider {
   }
 
   async writeFile(sandboxId: string, filePath: string, content: string): Promise<void> {
-    if (!this.activeSandboxes.has(sandboxId)) {
-      throw new SandboxUnavailableError(`Sandbox "${sandboxId}" not found.`);
-    }
+    this.ensureActive(sandboxId);
     const safePath = resolveSandboxPath(this.root, filePath);
     this.virtualFiles.set(safePath, content);
   }
 
-  async listFiles(sandboxId: string, directoryPath: string): Promise<SandboxFileEntry[]> {
-    if (!this.activeSandboxes.has(sandboxId)) {
-      throw new SandboxUnavailableError(`Sandbox "${sandboxId}" not found.`);
-    }
-    const safeDir = resolveSandboxPath(this.root, directoryPath);
+  async deleteFile(sandboxId: string, filePath: string): Promise<void> {
+    this.ensureActive(sandboxId);
+    const safePath = resolveSandboxPath(this.root, filePath);
+    this.virtualFiles.delete(safePath);
+  }
+
+  async listFiles(sandboxId: string, directoryPath: string = "."): Promise<SandboxFileEntry[]> {
+    this.ensureActive(sandboxId);
+    const safeDir = resolveSandboxPath(this.root, directoryPath || ".");
     const entries: SandboxFileEntry[] = [];
     for (const [path, content] of this.virtualFiles.entries()) {
       if (path.startsWith(safeDir)) {
@@ -220,6 +285,7 @@ export class MockSandboxProvider implements SandboxProvider {
 
   async destroy(sandboxId: string): Promise<void> {
     this.activeSandboxes.delete(sandboxId);
+    this.destroyedSandboxes.add(sandboxId);
     this.virtualFiles.clear();
   }
 }

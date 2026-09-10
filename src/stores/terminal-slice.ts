@@ -13,6 +13,15 @@ export interface TerminalSliceState {
 
 const MAX_TERMINAL_LINES = 500;
 
+export const DEMO_TERMINAL_LOGS: TerminalLogLine[] = [
+  { id: "t1", timestamp: "14:30:58", stream: "SYSTEM", text: "[LEGION V1] Core orchestrator initialized. 4 agents online." },
+  { id: "t2", timestamp: "14:31:00", stream: "COMMAND", text: "> legion commander plan --mission=mission-001" },
+  { id: "t3", timestamp: "14:32:10", stream: "STDOUT", text: "✓ Architecture synthesized: PostgreSQL + Next.js App Router" },
+  { id: "t4", timestamp: "14:33:20", stream: "COMMAND", text: "> legion builder write --file=src/lib/auth.ts" },
+  { id: "t5", timestamp: "14:35:08", stream: "STDERR", text: "✕ FAIL tests/auth.test.ts > Auth Flow > preserves redirect callbackUrl" },
+  { id: "t6", timestamp: "14:35:12", stream: "WARNING", text: "! ISSUE-004 logged: High Severity. Re-routing to Builder." },
+];
+
 export const useTerminalSlice = create<TerminalSliceState>((set) => {
   let isSubscribed = false;
 
@@ -34,12 +43,12 @@ export const useTerminalSlice = create<TerminalSliceState>((set) => {
 
   return {
     terminalLogs: [
-      { id: "t1", timestamp: "14:30:58", stream: "SYSTEM", text: "[LEGION V1] Core orchestrator initialized. 4 agents online." },
-      { id: "t2", timestamp: "14:31:00", stream: "COMMAND", text: "> legion commander plan --mission=mission-001" },
-      { id: "t3", timestamp: "14:32:10", stream: "STDOUT", text: "✓ Architecture synthesized: PostgreSQL + Next.js App Router" },
-      { id: "t4", timestamp: "14:33:20", stream: "COMMAND", text: "> legion builder write --file=src/lib/auth.ts" },
-      { id: "t5", timestamp: "14:35:08", stream: "STDERR", text: "✕ FAIL tests/auth.test.ts > Auth Flow > preserves redirect callbackUrl" },
-      { id: "t6", timestamp: "14:35:12", stream: "WARNING", text: "! ISSUE-004 logged: High Severity. Re-routing to Builder." },
+      {
+        id: "t0",
+        timestamp: "STANDBY",
+        stream: "SYSTEM",
+        text: "[LEGION] System standby. 4 agents online (COMMANDER, ARCHITECT, BUILDER, SENTINEL). Awaiting mission directive.",
+      },
     ],
     clearTerminal: () => set({ terminalLogs: [] }),
     initialize: () => {

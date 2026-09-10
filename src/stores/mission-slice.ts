@@ -23,7 +23,7 @@ export interface MissionSliceState {
   respondToApproval: (approvalId: string, approved: boolean, note?: string) => void;
 }
 
-const INITIAL_MISSION: Mission = {
+export const DEMO_MISSION: Mission = {
   id: "mission-001",
   projectId: "proj-001",
   workspaceId: "ws-001",
@@ -65,6 +65,32 @@ const INITIAL_MISSION: Mission = {
   createdAt: new Date().toISOString(),
 };
 
+const INITIAL_MISSION: Mission = {
+  id: "standby",
+  projectId: "proj-001",
+  workspaceId: "ws-001",
+  title: "LEGION // STANDBY",
+  prompt: "No active mission. Awaiting mission directive.",
+  brief: {
+    requirements: [],
+    constraints: [],
+    context: "",
+  },
+  plan: [],
+  status: "DRAFT",
+  progressPercent: 0,
+  totalTasks: 0,
+  completedTasks: 0,
+  failedTasks: 0,
+  openIssuesCount: 0,
+  tokensUsed: 0,
+  estimatedCostUsd: 0,
+  maxIterations: 50,
+  maxCostUsd: 10.0,
+  startedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+};
+
 export const useMissionSlice = create<MissionSliceState>((set, get) => {
   let isSubscribed = false;
   let timerInterval: NodeJS.Timeout | null = null;
@@ -72,7 +98,13 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
   const handleEvent = (event: LegionEvent) => {
     switch (event.type) {
       case "MISSION_STARTED":
-        set((s) => ({ mission: { ...s.mission, status: "RUNNING" } }));
+        set((s) => ({
+          mission: {
+            ...s.mission,
+            id: event.missionId || s.mission.id,
+            status: "RUNNING",
+          },
+        }));
         break;
       case "MISSION_PAUSED":
         set((s) => ({ mission: { ...s.mission, status: "PAUSED" } }));
@@ -93,22 +125,10 @@ export const useMissionSlice = create<MissionSliceState>((set, get) => {
 
   return {
     mission: INITIAL_MISSION,
-    elapsedSeconds: 761,
+    elapsedSeconds: 0,
     demoEngine: null,
-    isDemoMode: true,
-    approvals: [
-      {
-        id: "APP-001",
-        missionId: "mission-001",
-        requestedByRole: "COMMANDER",
-        actionTitle: "Run production database migration",
-        description: "Apply Drizzle ORM schema migration for financial accounts & transactions tables.",
-        risk: "HIGH",
-        reason: "Schema changes detected in production environment boundary.",
-        status: "PENDING",
-        requestedAt: new Date(Date.now() - 120000).toISOString(),
-      },
-    ],
+    isDemoMode: false,
+    approvals: [],
 
     initialize: () => {
       if (!isSubscribed) {

@@ -5,17 +5,55 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useMissionSlice } from "@/stores/mission-slice";
 import { useTasksSlice } from "@/stores/tasks-slice";
+import { useMissionRuntimeStore } from "@/stores/mission-runtime-store";
 import { Layers, CheckCircle2, AlertTriangle, Cpu, DollarSign, Activity } from "lucide-react";
 
 export const MissionProgressCard: React.FC = () => {
   const mission = useMissionSlice((s) => s.mission);
   const tasks = useTasksSlice((s) => s.tasks);
   const issues = useTasksSlice((s) => s.issues);
+  const runtime = useMissionRuntimeStore();
 
-  const completedCount = tasks.filter((t) => t.status === "COMPLETED").length;
-  const totalCount = tasks.length;
-  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : mission.progressPercent;
-  const openIssues = issues.filter((i) => i.status !== "RESOLVED").length;
+  const isRuntimeActive = runtime.status !== "IDLE";
+
+  // Derive counts & progress based on whether real runtime or slice is active
+  let title = mission.title;
+  let promptText = mission.prompt;
+  let requirements = mission.brief.requirements;
+  let totalTasks = tasks.length;
+  let completedTasks = tasks.filter((t) => t.status === "COMPLETED").length;
+  let openIssues = issues.filter((i) => i.status !== "RESOLVED").length;
+  let progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  let tokensDisplay = "0";
+  let costDisplay = "$0.00";
+  let buildStatus: string = mission.status === "COMPLETED" ? "READY" : (mission.status === "DRAFT" ? "STANDBY" : "RUNNING");
+  let testDisplay = "0 / 0";
+
+  if (isRuntimeActive) {
+    title = runtime.finalResult?.plan?.title || (runtime.missionPrompt ? `Mission: ${runtime.missionPrompt.slice(0, 60)}...` : "Live Mission Execution");
+    promptText = runtime.missionPrompt || "Executing multi-agent pipeline...";
+    requirements = runtime.finalResult?.plan?.constraints || ["TypeScript strict mode", "E2B micro-VM sandbox execution", "Sentinel validation"];
+    totalTasks = runtime.tasks.length;
+    completedTasks = runtime.tasks.filter((t) => t.status === "COMPLETED").length;
+    progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : (runtime.status === "COMPLETED" ? 100 : 0);
+    tokensDisplay = runtime.totalTokens ? `${(runtime.totalTokens.total / 1000).toFixed(1)}K` : "0";
+    costDisplay = runtime.totalCostUsd !== null ? `$${runtime.totalCostUsd.toFixed(2)}` : "$0.00";
+    buildStatus = runtime.status === "COMPLETED" ? "READY" : (runtime.status === "FAILED" ? "FAILED" : "RUNNING");
+    testDisplay = `${completedTasks} / ${totalTasks > 0 ? totalTasks : 0}`;
+  } else if (mission.status === "DRAFT" && totalTasks === 0) {
+    title = "LEGION // STANDBY";
+    promptText = "No active mission. Awaiting mission directive.";
+    requirements = [
+      "Enter mission prompt in Mission Control to deploy agents",
+      "Multi-agent autonomous planning & execution",
+      "E2B isolated sandbox verification",
+    ];
+    progress = 0;
+    tokensDisplay = "0";
+    costDisplay = "$0.00";
+    buildStatus = "STANDBY";
+    testDisplay = "0 / 0";
+  }
 
   return (
     <div className="space-y-4">
@@ -25,23 +63,23 @@ export const MissionProgressCard: React.FC = () => {
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-[11px] font-mono font-semibold tracking-wider text-mutedForeground uppercase">
-                Current Mission
+                {isRuntimeActive ? "Active Mission Runtime" : "Current Mission"}
               </span>
               <Badge variant="outline" size="sm">
-                ID: {mission.id}
+                STATUS: {isRuntimeActive ? runtime.status : mission.status}
               </Badge>
             </div>
             <h2 className="text-base font-semibold text-foreground font-sans leading-snug">
-              {mission.title}
+              {title}
             </h2>
             <p className="text-xs text-mutedForeground mt-2 font-mono">
-              {mission.prompt}
+              {promptText}
             </p>
           </div>
 
           <div className="mt-4 pt-3 border-t border-borderMuted flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-mono uppercase text-mutedForeground">Requirements:</span>
-            {mission.brief.requirements.slice(0, 3).map((req, i) => (
+            {requirements.slice(0, 3).map((req, i) => (
               <span
                 key={i}
                 className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-foreground truncate max-w-xs"
@@ -68,7 +106,7 @@ export const MissionProgressCard: React.FC = () => {
             <div className="flex items-center justify-between text-xs font-mono text-mutedForeground mt-3">
               <span>Verified Tasks</span>
               <span className="text-foreground font-semibold">
-                {completedCount} / {totalCount} TASKS
+                {completedTasks} / {totalTasks} TASKS
               </span>
             </div>
           </div>
@@ -76,11 +114,11 @@ export const MissionProgressCard: React.FC = () => {
           <div className="mt-4 pt-3 border-t border-borderMuted grid grid-cols-2 gap-2 text-center font-mono text-xs">
             <div className="bg-surface p-2 rounded border border-border">
               <div className="text-[10px] text-mutedForeground uppercase">Tokens</div>
-              <div className="text-foreground font-semibold mt-0.5">52.1K</div>
+              <div className="text-foreground font-semibold mt-0.5">{tokensDisplay}</div>
             </div>
             <div className="bg-surface p-2 rounded border border-border">
               <div className="text-[10px] text-mutedForeground uppercase">Est. Cost</div>
-              <div className="text-foreground font-semibold mt-0.5">$0.42</div>
+              <div className="text-foreground font-semibold mt-0.5">{costDisplay}</div>
             </div>
           </div>
         </Card>
@@ -94,7 +132,7 @@ export const MissionProgressCard: React.FC = () => {
             <span>Tasks</span>
           </div>
           <div className="text-sm font-bold font-mono text-foreground">
-            {completedCount} <span className="text-xs text-mutedForeground">/ {totalCount}</span>
+            {completedTasks} <span className="text-xs text-mutedForeground">/ {totalTasks}</span>
           </div>
         </div>
 
@@ -104,7 +142,7 @@ export const MissionProgressCard: React.FC = () => {
             <span>Tests</span>
           </div>
           <div className="text-sm font-bold font-mono text-foreground">
-            8 <span className="text-xs text-mutedForeground">/ 10</span>
+            {testDisplay}
           </div>
         </div>
 
@@ -114,7 +152,7 @@ export const MissionProgressCard: React.FC = () => {
             <span>Build</span>
           </div>
           <div className="text-xs font-bold font-mono text-accent uppercase">
-            {mission.status === "COMPLETED" ? "READY" : "RUNNING"}
+            {buildStatus}
           </div>
         </div>
 
@@ -133,7 +171,7 @@ export const MissionProgressCard: React.FC = () => {
             <Cpu className="w-3.5 h-3.5 text-info" />
             <span>Tokens</span>
           </div>
-          <div className="text-sm font-bold font-mono text-foreground">52.1K</div>
+          <div className="text-sm font-bold font-mono text-foreground">{tokensDisplay}</div>
         </div>
 
         <div className="bg-surface p-3 rounded-lg border border-border">
@@ -141,7 +179,7 @@ export const MissionProgressCard: React.FC = () => {
             <DollarSign className="w-3.5 h-3.5 text-success" />
             <span>Cost</span>
           </div>
-          <div className="text-sm font-bold font-mono text-foreground">$0.42</div>
+          <div className="text-sm font-bold font-mono text-foreground">{costDisplay}</div>
         </div>
       </div>
     </div>

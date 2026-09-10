@@ -2,6 +2,8 @@
 
 import { LegionEvent, LegionEventType } from "@/types/events";
 
+import { sanitizeValue } from "../memory/sanitizer";
+
 export type EventListener<T extends LegionEvent = LegionEvent> = (event: T) => void;
 
 // A plain Omit<T, K> over a union type collapses to the shared base fields
@@ -71,17 +73,19 @@ class LegionEventBus {
   }
 
   /**
-   * Emit an event across all listeners. The bus is the single source of
-   * truth for `id`, `timestamp`, and `seq` — callers only supply the
-   * semantic payload, which guarantees every event is uniquely and
-   * monotonically identifiable regardless of call site.
+   * Emit an event across all listeners with automatic global secret sanitization.
+   * The bus is the single source of truth for `id`, `timestamp`, and `seq`.
    */
   public emit(eventInput: EmittableLegionEvent): void {
     this.seqCounter += 1;
     const seq = this.seqCounter;
     const prefix = (eventInput as { type: LegionEventType }).type === "TERMINAL_OUTPUT" ? "term" : "evt";
+
+    // Global Secret Sanitization Boundary
+    const sanitizedInput = sanitizeValue(eventInput);
+
     const event = {
-      ...eventInput,
+      ...sanitizedInput,
       id: this.generateId(prefix, seq),
       timestamp: new Date().toISOString(),
       seq,

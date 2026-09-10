@@ -1,12 +1,12 @@
-// Real E2B Sandbox Provider Implementation for LEGION
-
 import {
   SandboxProvider,
   SandboxInstance,
   SandboxExecutionResult,
   SandboxFileEntry,
   SandboxResourceLimits,
+  SandboxExecuteOptions,
   resolveSandboxPath,
+  registerTrustedRealSandboxProvider,
 } from "./sandbox";
 import {
   SandboxError,
@@ -19,8 +19,13 @@ import { Sandbox as E2BSandbox } from "@e2b/code-interpreter";
 
 export class E2BSandboxProvider implements SandboxProvider {
   public readonly name = "e2b-sandbox-provider";
+  public readonly executionMode = "REAL" as const;
   private readonly defaultRoot = "/home/user";
   private sandboxes: Map<string, E2BSandbox> = new Map();
+
+  constructor() {
+    registerTrustedRealSandboxProvider(this);
+  }
 
   private sanitizeErrorMessage(err: unknown): string {
     const raw = err instanceof Error ? err.message : String(err);
@@ -70,7 +75,8 @@ export class E2BSandboxProvider implements SandboxProvider {
     command: string,
     onOutput?: (stream: "stdout" | "stderr", text: string) => void,
     timeoutMs?: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options?: SandboxExecuteOptions
   ): Promise<SandboxExecutionResult> {
     const sbx = this.sandboxes.get(sandboxId);
     if (!sbx) {
@@ -82,7 +88,10 @@ export class E2BSandboxProvider implements SandboxProvider {
     }
 
     const limits = getExecutionLimits();
-    const effectiveTimeout = timeoutMs || limits.sandboxTimeoutMs;
+    const effectiveTimeout = timeoutMs || options?.timeoutMs || limits.sandboxTimeoutMs;
+    const effectiveCwd = options?.cwd && options.cwd !== "."
+      ? resolveSandboxPath(this.defaultRoot, options.cwd)
+      : this.defaultRoot;
     const startTime = Date.now();
 
     let totalBytes = 0;
@@ -117,12 +126,19 @@ export class E2BSandboxProvider implements SandboxProvider {
     try {
       const abortPromise = new Promise<never>((_, reject) => {
         if (!signal) return;
-        signal.addEventListener("abort", () => {
+        signal.addEventListener("abort", async () => {
+          try {
+            // Actively terminate running processes in remote sandbox
+            await sbx.commands.run("pkill -9 -f node || pkill -9 -f python || true", { timeoutMs: 3_000 }).catch(() => {});
+          } catch {
+            // ignore
+          }
           reject(new SandboxError("Execution cancelled by user.", "EXECUTION_CANCELLED"));
-        });
+        }, { once: true });
       });
 
       const execPromise = sbx.commands.run(command, {
+        cwd: effectiveCwd,
         onStdout: (chunk) => handleChunk("stdout", chunk),
         onStderr: (chunk) => handleChunk("stderr", chunk),
         timeoutMs: effectiveTimeout,
@@ -178,6 +194,23 @@ export class E2BSandboxProvider implements SandboxProvider {
     }
   }
 
+  async deleteFile(sandboxId: string, filePath: string): Promise<void> {
+    const sbx = this.sandboxes.get(sandboxId);
+    if (!sbx) {
+      throw new SandboxUnavailableError(`E2B sandbox instance "${sandboxId}" not found.`);
+    }
+
+    const safePath = resolveSandboxPath(this.defaultRoot, filePath);
+    try {
+      await sbx.files.remove(safePath);
+    } catch (err: unknown) {
+      const sanitized = this.sanitizeErrorMessage(err);
+      if (!sanitized.toLowerCase().includes("not found") && !sanitized.toLowerCase().includes("no such file")) {
+        throw new SandboxError(`Failed to delete file "${safePath}": ${sanitized}`);
+      }
+    }
+  }
+
   async listFiles(sandboxId: string, directoryPath: string): Promise<SandboxFileEntry[]> {
     const sbx = this.sandboxes.get(sandboxId);
     if (!sbx) {
@@ -203,8 +236,9 @@ export class E2BSandboxProvider implements SandboxProvider {
     if (!sbx) return;
     try {
       await sbx.kill();
-    } catch {
-      // Ignore errors during teardown
+    } catch (err: unknown) {
+      const sanitized = this.sanitizeErrorMessage(err);
+      throw new SandboxError(`E2B sandbox destroy failed for container "${sandboxId}": ${sanitized}`);
     } finally {
       this.sandboxes.delete(sandboxId);
     }

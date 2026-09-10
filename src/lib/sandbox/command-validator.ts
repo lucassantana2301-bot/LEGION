@@ -112,10 +112,40 @@ export function validateCommand(rawCommand: string): CommandValidationResult {
     };
   }
 
+  // Check safe parameterized commands: node <script>, npx tsx <script>, npx tsc <args>
+  if (
+    trimmed.startsWith("node ") ||
+    trimmed.startsWith("npx tsx ") ||
+    trimmed.startsWith("npx ts-node ") ||
+    trimmed.startsWith("npx tsc") ||
+    trimmed.startsWith("npm test") ||
+    trimmed.startsWith("npm run ")
+  ) {
+    if (trimmed.includes("..")) {
+      return {
+        valid: false,
+        command: trimmed,
+        reason: "Path traversal '..' is forbidden in command arguments.",
+      };
+    }
+    // Allow safe filename/flags arguments
+    if (/^[a-zA-Z0-9 _./:=-]+$/.test(trimmed)) {
+      return {
+        valid: true,
+        command: trimmed,
+      };
+    }
+    return {
+      valid: false,
+      command: trimmed,
+      reason: "Execution command contains unsafe characters or unsupported flags.",
+    };
+  }
+
   return {
     valid: false,
     command: trimmed,
-    reason: `Command "${trimmed}" is not in the allowed command set for Phase 02B. Permitted: node --version, npm --version, echo, pwd, ls, whoami, date, uname.`,
+    reason: `Command "${trimmed}" is not in the allowed command set for LEGION Sandbox. Permitted: node, npm, npx tsx/tsc, echo, pwd, ls, cat, whoami, date, uname.`,
   };
 }
 

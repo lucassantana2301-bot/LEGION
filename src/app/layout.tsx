@@ -9,6 +9,9 @@ import { TaskDetailModal } from "@/components/tasks/task-detail-modal";
 export const metadata: Metadata = {
   title: "LEGION // Autonomous Software Engineering Platform",
   description: "One Mission. Multiple Agents. Working Software.",
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -17,8 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-foreground flex h-screen overflow-hidden font-sans">
+    <html lang="en" className="dark notranslate" translate="no" suppressHydrationWarning>
+      <head>
+        <meta name="google" content="notranslate" />
+      </head>
+      <body className="bg-background text-foreground flex h-screen overflow-hidden font-sans notranslate" translate="no" suppressHydrationWarning>
         <StoreBootstrap />
         <Sidebar />
         <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">

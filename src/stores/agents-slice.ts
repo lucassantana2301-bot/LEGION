@@ -11,19 +11,16 @@ export interface AgentsSliceState {
   initialize: () => void;
 }
 
-const initialAgentsMap = INITIAL_AGENTS.reduce((acc, agent) => {
-  acc[agent.role] = { ...agent };
-  return acc;
-}, {} as Record<AgentRole, Agent>);
-
-initialAgentsMap.COMMANDER.status = "WORKING";
-initialAgentsMap.COMMANDER.currentTaskTitle = "Coordinating execution & triage";
-initialAgentsMap.ARCHITECT.status = "IDLE";
-initialAgentsMap.ARCHITECT.currentTaskTitle = "System architecture ready";
-initialAgentsMap.BUILDER.status = "WORKING";
-initialAgentsMap.BUILDER.currentTaskTitle = "Implementing authentication";
-initialAgentsMap.SENTINEL.status = "WAITING";
-initialAgentsMap.SENTINEL.currentTaskTitle = "Awaiting validation";
+const createInitialAgentsMap = (): Record<AgentRole, Agent> => {
+  return INITIAL_AGENTS.reduce((acc, agent) => {
+    acc[agent.role] = {
+      ...agent,
+      status: "IDLE",
+      currentTaskTitle: undefined,
+    };
+    return acc;
+  }, {} as Record<AgentRole, Agent>);
+};
 
 export const useAgentsSlice = create<AgentsSliceState>((set) => {
   let isSubscribed = false;
@@ -50,7 +47,7 @@ export const useAgentsSlice = create<AgentsSliceState>((set) => {
   };
 
   return {
-    agents: initialAgentsMap,
+    agents: createInitialAgentsMap(),
     initialize: () => {
       if (!isSubscribed) {
         legionEventBus.subscribe("*", handleEvent);

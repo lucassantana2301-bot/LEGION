@@ -4,17 +4,19 @@
 
 @layer base {
   :root {
-    --background: #090a0f;
+    --background: #08090d;
     --surface: #0e1117;
-    --surface-raised: #151922;
+    --surface-raised: #141824;
     --surface-overlay: #1c2230;
+    --surface-elevated: #22293d;
 
-    --border: #242b3b;
-    --border-muted: #1a202c;
+    --border: #1f2738;
+    --border-muted: #151b27;
+    --border-active: #3b82f6;
 
-    --foreground: #f1f5f9;
-    --muted: #1e2638;
-    --muted-foreground: #8a99ad;
+    --foreground: #f8fafc;
+    --muted: #1a2233;
+    --muted-foreground: #94a3b8;
 
     --accent: #3b82f6;
     --accent-foreground: #ffffff;
@@ -35,6 +37,27 @@
     --info: #06b6d4;
     --info-foreground: #ffffff;
     --info-subtle: rgba(6, 182, 212, 0.15);
+
+    /* Tactical Agent Role Tokens */
+    --role-commander: #818cf8;
+    --role-commander-bg: rgba(129, 140, 248, 0.1);
+    --role-commander-border: rgba(129, 140, 248, 0.3);
+
+    --role-architect: #38bdf8;
+    --role-architect-bg: rgba(56, 189, 248, 0.1);
+    --role-architect-border: rgba(56, 189, 248, 0.3);
+
+    --role-builder: #fbbf24;
+    --role-builder-bg: rgba(251, 191, 36, 0.1);
+    --role-builder-border: rgba(251, 191, 36, 0.3);
+
+    --role-sentinel: #34d399;
+    --role-sentinel-bg: rgba(52, 211, 153, 0.1);
+    --role-sentinel-border: rgba(52, 211, 153, 0.3);
+
+    --role-orchestrator: #c084fc;
+    --role-orchestrator-bg: rgba(192, 132, 252, 0.1);
+    --role-orchestrator-border: rgba(192, 132, 252, 0.3);
 
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, Monaco, monospace;

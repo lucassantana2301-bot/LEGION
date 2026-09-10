@@ -10,8 +10,8 @@ export const FailureLoopBanner: React.FC = () => {
   const issues = useTasksSlice((s) => s.issues);
   const tasks = useTasksSlice((s) => s.tasks);
 
-  const activeIssue = issues.find((i) => i.id === "ISSUE-004");
-  const relatedTask = tasks.find((t) => t.id === "TASK-008");
+  const activeIssue = issues.find((i) => i.status !== "RESOLVED") || issues[0];
+  const relatedTask = activeIssue ? tasks.find((t) => t.id === activeIssue.taskId) : null;
 
   if (!activeIssue) return null;
 
@@ -43,7 +43,7 @@ export const FailureLoopBanner: React.FC = () => {
               </Badge>
             </div>
             <div className="text-xs font-mono text-mutedForeground mt-0.5">
-              Task: <strong className="text-foreground">{relatedTask?.title || "TASK-008"}</strong>
+              Task: <strong className="text-foreground">{relatedTask?.title || activeIssue.taskId || "Active Task"}</strong>
             </div>
           </div>
         </div>
@@ -72,7 +72,7 @@ export const FailureLoopBanner: React.FC = () => {
         {/* Step 2: Issue logged & assigned */}
         <div className="p-2.5 rounded border bg-surfaceRaised border-border flex flex-col items-center justify-center gap-1 text-warning">
           <AlertOctagon className="w-4 h-4" />
-          <span className="font-bold text-[10px]">2. ISSUE #004</span>
+          <span className="font-bold text-[10px]">2. {activeIssue.id}</span>
           <span className="text-[9px]">TRIAGED</span>
         </div>
 

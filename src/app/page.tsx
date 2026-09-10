@@ -1,251 +1,299 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React from "react";
+import Link from "next/link";
+import { clsx } from "clsx";
 import {
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
+  FolderGit2,
   CheckCircle2,
+  XCircle,
   Clock,
-  ChevronRight,
-  Layers,
+  Activity,
+  ShieldCheck,
+  TrendingUp,
+  Cpu,
   Bot,
-  Zap,
+  ArrowRight,
+  Radio,
+  Layers,
+  Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { useMissionSlice } from "@/stores/mission-slice";
+import { useMissionHistoryStore } from "@/stores/mission-history-store";
+import { useMissionRuntimeStore } from "@/stores/mission-runtime-store";
+import { NewMissionCard } from "@/components/missions/new-mission-card";
+import { PipelineDeck } from "@/components/missions/pipeline-deck";
 
-export default function HomePage() {
-  const router = useRouter();
-  const startMission = useMissionSlice((s) => s.startMission);
+export default function OverviewPage() {
+  const [mounted, setMounted] = React.useState(false);
+  const missions = useMissionHistoryStore((s) => s.missions);
+  const runtimeStatus = useMissionRuntimeStore((s) => s.status);
+  const liveEvents = useMissionRuntimeStore((s) => s.events);
 
-  const [prompt, setPrompt] = useState("");
-  const [step, setStep] = useState<"INPUT" | "ANALYZING" | "PLAN_REVIEW">("INPUT");
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const suggestions = [
-    "BUILD A FINANCIAL SAAS",
-    "CREATE AN AUTHENTICATION SYSTEM",
-    "BUILD A REST API",
-    "ANALYZE A REPOSITORY",
-  ];
+  const totalMissions = mounted ? missions.length : 4;
+  const successfulMissions = mounted ? missions.filter((m) => m.status === "COMPLETED").length : 3;
+  const failedMissions = mounted ? missions.filter((m) => m.status === "FAILED").length : 1;
+  const activeMissions = mounted
+    ? missions.filter((m) => m.status === "RUNNING" || m.status === "PLANNING" || m.status === "VALIDATING").length +
+      (runtimeStatus === "EXECUTING" || runtimeStatus === "PLANNING" || runtimeStatus === "VERIFYING" ? 1 : 0)
+    : 0;
 
-  const recentMissions = [
-    {
-      id: "mission-001",
-      title: "Financial SaaS with PostgreSQL, Authentication and Dashboard",
-      status: "RUNNING",
-      progress: 63,
-      tasks: "12/19",
-      updated: "2m ago",
-    },
-    {
-      id: "mission-002",
-      title: "Real-time Multi-tenant Invoicing API & Stripe Webhooks",
-      status: "COMPLETED",
-      progress: 100,
-      tasks: "14/14",
-      updated: "1d ago",
-    },
-  ];
+  const qaSuccessRate = totalMissions > 0 ? Math.round((successfulMissions / totalMissions) * 100) : 100;
+  const avgDurationSeconds =
+    totalMissions > 0
+      ? Math.round(
+          missions.reduce((acc, m) => acc + (m.durationMs || 45000), 0) / (totalMissions * 1000)
+        )
+      : 54;
 
-  const handleStartMission = () => {
-    if (!prompt.trim()) {
-      setPrompt("Create a financial SaaS for small businesses with authentication, PostgreSQL and dashboard.");
-    }
-    setStep("ANALYZING");
-    setTimeout(() => {
-      setStep("PLAN_REVIEW");
-    }, 1200);
-  };
-
-  const handleDeployLegion = () => {
-    startMission();
-    router.push("/missions/mission-001");
-  };
+  const isLiveRunning =
+    runtimeStatus === "EXECUTING" ||
+    runtimeStatus === "PLANNING" ||
+    runtimeStatus === "VERIFYING";
 
   return (
-    <div className="min-h-full bg-grid-pattern p-6 sm:p-12 flex flex-col items-center justify-center">
-      <div className="w-full max-w-3xl space-y-8 animate-in fade-in duration-300">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surfaceRaised border border-border text-xs font-mono text-mutedForeground mb-2">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <span>LEGION v1.0 // AUTONOMOUS SOFTWARE ENGINEERING</span>
+    <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-7xl mx-auto w-full">
+      {/* Header Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-border">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-mono font-bold tracking-tight text-foreground">
+              Autonomous Software Engineering Deck
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-accent/15 text-accent font-semibold border border-accent/30">
+              CORE v0.1
+            </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground font-sans">
-            WHAT DO YOU WANT TO BUILD?
-          </h1>
-          <p className="text-sm font-mono text-mutedForeground max-w-xl mx-auto">
-            One Mission. Multiple Agents. Working Software.
+          <p className="text-xs font-mono text-mutedForeground mt-1">
+            Coordinating multi-agent DAG execution with Zero-Bypass Canonical Workspace validation.
           </p>
         </div>
 
-        {/* STEP 1: Main Mission Input */}
-        {step === "INPUT" && (
-          <div className="space-y-4">
-            <Card variant="raised" className="p-4 border-border shadow-2xl space-y-3">
-              <div className="relative">
-                <textarea
-                  rows={4}
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe a product, feature or engineering mission (e.g. 'Build a financial SaaS with authentication, PostgreSQL and dashboard')..."
-                  className="w-full bg-surface border border-border focus:border-accent rounded-lg p-3.5 text-sm font-mono text-foreground placeholder:text-mutedForeground focus:outline-none resize-none"
-                />
-              </div>
+        {/* Global Status Pill */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surfaceRaised border border-border text-xs font-mono">
+          <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+          <span className="text-foreground font-semibold">ALL SYSTEMS OPERATIONAL</span>
+        </div>
+      </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div className="flex items-center gap-1.5 text-xs font-mono text-mutedForeground">
-                  <ShieldCheck className="w-3.5 h-3.5 text-success" />
-                  <span>Sandbox Isolation & Gatekeeper Protection</span>
-                </div>
+      {/* KPI Metrics Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Total Missions */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">Total Missions</span>
+          <div className="text-xl font-bold text-foreground">{totalMissions}</div>
+          <span className="text-[10px] text-mutedForeground">Recorded history</span>
+        </div>
 
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleStartMission}
-                  icon={<Zap className="w-4 h-4 text-white" />}
-                >
-                  START MISSION
-                </Button>
-              </div>
-            </Card>
-
-            {/* Suggestions Chips */}
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <span className="text-[11px] font-mono text-mutedForeground mr-1">Suggestions:</span>
-              {suggestions.map((sug) => (
-                <button
-                  key={sug}
-                  onClick={() => setPrompt(sug)}
-                  className="text-xs font-mono px-3 py-1.5 rounded bg-surface hover:bg-surfaceRaised border border-border hover:border-accent/40 text-mutedForeground hover:text-foreground transition-all duration-150"
-                >
-                  {sug}
-                </button>
-              ))}
-            </div>
+        {/* Successful */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">Successful</span>
+          <div className="text-xl font-bold text-success flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-success" />
+            {successfulMissions}
           </div>
-        )}
+          <span className="text-[10px] text-success/80">{qaSuccessRate}% success rate</span>
+        </div>
 
-        {/* STEP 2: Analyzing State */}
-        {step === "ANALYZING" && (
-          <Card variant="raised" className="p-8 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-accent/15 border border-accent/30 mx-auto flex items-center justify-center animate-pulse">
-              <Bot className="w-6 h-6 text-accent" />
-            </div>
-            <div>
-              <div className="text-sm font-mono font-bold text-foreground uppercase tracking-wider">
-                INITIALIZING LEGION
-              </div>
-              <div className="text-xs font-mono text-accent mt-1 flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-                COMMANDER: Analyzing mission requirements & formulating task graph...
-              </div>
-            </div>
-          </Card>
-        )}
+        {/* Failed */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">Failed / Stopped</span>
+          <div className="text-xl font-bold text-danger flex items-center gap-1.5">
+            <XCircle className="w-4 h-4 text-danger" />
+            {failedMissions}
+          </div>
+          <span className="text-[10px] text-mutedForeground">Zero-Bypass caught</span>
+        </div>
 
-        {/* STEP 3: Plan Review & Deploy Legion */}
-        {step === "PLAN_REVIEW" && (
-          <Card variant="raised" className="p-6 border-border space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-border">
-              <div>
-                <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider">
-                  COMMANDER // MISSION BRIEF
-                </span>
-                <h2 className="text-base font-semibold text-foreground mt-0.5">
-                  Financial SaaS with PostgreSQL, Auth & Analytics
-                </h2>
-              </div>
-              <Badge variant="accent" size="md">
-                8 STAGES GENERATED
-              </Badge>
-            </div>
+        {/* Active Missions */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">Active Swarms</span>
+          <div className="text-xl font-bold text-accent flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-accent" />
+            {activeMissions}
+          </div>
+          <span className="text-[10px] text-accent/80">Concurrent slots</span>
+        </div>
 
-            {/* Generated Plan Stages */}
-            <div className="space-y-2 font-mono text-xs">
-              <div className="text-[10px] text-mutedForeground uppercase font-bold tracking-wider mb-2">
-                Mission Execution Plan:
-              </div>
-              {[
-                { step: "01", title: "Define system architecture & domain models", agent: "ARCHITECT" },
-                { step: "02", title: "Initialize repository & configure environment", agent: "BUILDER" },
-                { step: "03", title: "Configure PostgreSQL schema & Drizzle migrations", agent: "ARCHITECT" },
-                { step: "04", title: "Implement authentication & session handlers", agent: "BUILDER" },
-                { step: "05", title: "Build financial dashboard & ledger components", agent: "BUILDER" },
-                { step: "06", title: "Create REST APIs & webhook listeners", agent: "BUILDER" },
-                { step: "07", title: "Run Sentinel automated test & regression suite", agent: "SENTINEL" },
-                { step: "08", title: "Validate production build & static export", agent: "COMMANDER" },
-              ].map((item) => (
-                <div
-                  key={item.step}
-                  className="flex items-center justify-between p-2.5 rounded bg-surface border border-border"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-accent font-bold text-[11px]">{item.step}</span>
-                    <span className="text-foreground">{item.title}</span>
-                  </div>
-                  <Badge variant="outline" size="sm">
-                    {item.agent}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+        {/* QA Success Rate */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">QA Pass Rate</span>
+          <div className="text-xl font-bold text-emerald-400 flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            {qaSuccessRate}%
+          </div>
+          <span className="text-[10px] text-mutedForeground">Strict sandbox</span>
+        </div>
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-border">
-              <Button variant="ghost" size="md" onClick={() => setStep("INPUT")}>
-                EDIT MISSION PROMPT
-              </Button>
+        {/* Avg Duration */}
+        <div className="p-3.5 rounded-xl bg-surface border border-border space-y-1 shadow-sm font-mono">
+          <span className="text-[10px] text-mutedForeground uppercase font-medium">Avg Duration</span>
+          <div className="text-xl font-bold text-foreground flex items-center gap-1.5">
+            <Clock className="w-4 h-4 text-mutedForeground" />
+            {avgDurationSeconds}s
+          </div>
+          <span className="text-[10px] text-mutedForeground">Per mission</span>
+        </div>
+      </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleDeployLegion}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                >
-                  DEPLOY LEGION
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
+      {/* New Mission Prominent Creator */}
+      <NewMissionCard />
 
-        {/* Recent Missions */}
-        <div className="pt-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-mono font-bold tracking-wider text-mutedForeground uppercase">
-              RECENT MISSIONS
+      {/* Swarm Pipeline Preview if running or recent */}
+      {isLiveRunning && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-mono font-bold text-accent uppercase tracking-wider flex items-center gap-2">
+              <Radio className="w-3.5 h-3.5 animate-pulse" /> Live Swarm Telemetry
             </span>
+            <Link href="/missions/live" className="text-[11px] font-mono text-accent hover:underline">
+              Open Full Mission Control &rarr;
+            </Link>
+          </div>
+          <PipelineDeck />
+        </div>
+      )}
+
+      {/* Two Column Grid: Recent Missions & System Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Recent Missions Table */}
+        <div className="lg:col-span-7 bg-surface rounded-xl border border-border p-4 space-y-3 font-mono shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-2">
+              <FolderGit2 className="w-4 h-4 text-accent" />
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Recent Missions
+              </h3>
+            </div>
+            <Link
+              href="/missions"
+              className="text-[11px] text-mutedForeground hover:text-accent flex items-center gap-1 transition-colors"
+            >
+              <span>View All History</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
 
           <div className="space-y-2">
-            {recentMissions.map((m) => (
-              <div
-                key={m.id}
-                onClick={() => router.push(`/missions/${m.id}`)}
-                className="p-3.5 rounded-lg bg-surface hover:bg-surfaceRaised border border-border hover:border-borderMuted flex items-center justify-between cursor-pointer transition-all group font-mono text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-accent font-bold">{m.id}</span>
-                  <span className="text-foreground group-hover:text-white font-medium truncate max-w-md">
-                    {m.title}
-                  </span>
-                </div>
+            {missions.slice(0, 4).map((mission) => {
+              const isCompleted = mission.status === "COMPLETED";
+              const isFailed = mission.status === "FAILED";
 
-                <div className="flex items-center gap-4 text-mutedForeground">
-                  <span>{m.tasks} tasks</span>
-                  <Badge variant={m.status === "RUNNING" ? "accent" : "success"} size="sm">
-                    {m.status}
-                  </Badge>
-                  <ChevronRight className="w-4 h-4 text-mutedForeground group-hover:text-foreground" />
+              return (
+                <Link
+                  key={mission.id}
+                  href={`/missions/${mission.id}`}
+                  className="block p-3 rounded-lg bg-surfaceRaised/60 hover:bg-surfaceRaised border border-border/80 hover:border-border transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                          {mission.title}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-surfaceOverlay text-mutedForeground border border-border">
+                          {mission.id}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-mutedForeground line-clamp-1 mt-1">
+                        {mission.prompt}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right space-y-1">
+                      <span
+                        className={clsx(
+                          "inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase",
+                          isCompleted && "bg-success/15 text-success border-success/30",
+                          isFailed && "bg-danger/15 text-danger border-danger/30",
+                          !isCompleted && !isFailed && "bg-accent/15 text-accent border-accent/30"
+                        )}
+                      >
+                        {isCompleted && <CheckCircle2 className="w-3 h-3" />}
+                        {isFailed && <XCircle className="w-3 h-3" />}
+                        {mission.status}
+                      </span>
+                      <div className="text-[10px] text-mutedForeground">
+                        {Math.round(mission.durationMs / 1000)}s · {mission.tasksCount} tasks
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Column: System Activity Live Log */}
+        <div className="lg:col-span-5 bg-surface rounded-xl border border-border p-4 space-y-3 font-mono shadow-sm flex flex-col">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-accent" />
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                System Activity Log
+              </h3>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-surfaceOverlay text-mutedForeground border border-border">
+              {liveEvents.length > 0 ? `${liveEvents.length} Live` : "Telemetry Active"}
+            </span>
+          </div>
+
+          <div className="space-y-2 overflow-y-auto max-h-[340px] pr-1 flex-1">
+            {liveEvents.length > 0 ? (
+              liveEvents.slice(-6).map((ev, i) => (
+                <div key={i} className="p-2.5 rounded bg-surfaceRaised/50 border border-border/60 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-mutedForeground mb-1">
+                    <span className="text-accent font-semibold">{ev.agentRole || "ORCHESTRATOR"}</span>
+                    <span>{ev.formattedTime}</span>
+                  </div>
+                  <p className="text-foreground text-[11px] leading-relaxed line-clamp-2">
+                    {ev.message}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="space-y-2">
+                <div className="p-2.5 rounded bg-surfaceRaised/50 border border-border/60 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-mutedForeground mb-1">
+                    <span className="text-indigo-400 font-semibold">COMMANDER</span>
+                    <span>10 mins ago</span>
+                  </div>
+                  <p className="text-foreground text-[11px] leading-relaxed">
+                    Formulated parallel DAG with 4 tasks and resolved dependencies.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded bg-surfaceRaised/50 border border-border/60 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-mutedForeground mb-1">
+                    <span className="text-amber-400 font-semibold">BUILDER</span>
+                    <span>8 mins ago</span>
+                  </div>
+                  <p className="text-foreground text-[11px] leading-relaxed">
+                    Executed sandbox test suite in isolated container sbx-0190a42f.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded bg-surfaceRaised/50 border border-border/60 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-mutedForeground mb-1">
+                    <span className="text-emerald-400 font-semibold">SENTINEL</span>
+                    <span>5 mins ago</span>
+                  </div>
+                  <p className="text-foreground text-[11px] leading-relaxed">
+                    Verified TypeScript compile-time invariants and approved task patch.
+                  </p>
+                </div>
+                <div className="p-2.5 rounded bg-surfaceRaised/50 border border-border/60 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-mutedForeground mb-1">
+                    <span className="text-purple-400 font-semibold">INTEGRATED QA</span>
+                    <span>2 mins ago</span>
+                  </div>
+                  <p className="text-foreground text-[11px] leading-relaxed">
+                    Canonical workspace SHA-256 digest matched remote readback. Gate sealed.
+                  </p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

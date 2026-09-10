@@ -15,6 +15,49 @@ export interface ActivitySliceState {
   initialize: () => void;
 }
 
+export const DEMO_ACTIVITIES: ActivityEvent[] = [
+  {
+    id: "act-1",
+    missionId: "mission-001",
+    timestamp: "14:31:02",
+    type: "MISSION_PLANNING",
+    agentRole: "COMMANDER",
+    title: "Mission analyzed",
+    message: "Deconstructed requirements and created task execution graph.",
+    severity: "INFO",
+  },
+  {
+    id: "act-2",
+    missionId: "mission-001",
+    timestamp: "14:32:15",
+    type: "AGENT_COMPLETED",
+    agentRole: "ARCHITECT",
+    title: "Architecture created",
+    message: "Generated Drizzle schema, tech stack definition, and contracts.",
+    severity: "SUCCESS",
+  },
+  {
+    id: "act-3",
+    missionId: "mission-001",
+    timestamp: "14:33:40",
+    type: "FILE_CREATED",
+    agentRole: "BUILDER",
+    title: "Project initialized",
+    message: "Scaffolded Next.js App Router and authentication module.",
+    severity: "INFO",
+  },
+  {
+    id: "act-4",
+    missionId: "mission-001",
+    timestamp: "14:35:10",
+    type: "TEST_FAILED",
+    agentRole: "SENTINEL",
+    title: "TEST FAILED",
+    message: "Authentication redirect failed. ISSUE-004 created.",
+    severity: "ERROR",
+  },
+];
+
 export const useActivitySlice = create<ActivitySliceState>((set) => {
   let isSubscribed = false;
 
@@ -80,48 +123,7 @@ export const useActivitySlice = create<ActivitySliceState>((set) => {
   };
 
   return {
-    activities: [
-      {
-        id: "act-1",
-        missionId: "mission-001",
-        timestamp: "14:31:02",
-        type: "MISSION_PLANNING",
-        agentRole: "COMMANDER",
-        title: "Mission analyzed",
-        message: "Deconstructed requirements and created task execution graph.",
-        severity: "INFO",
-      },
-      {
-        id: "act-2",
-        missionId: "mission-001",
-        timestamp: "14:32:15",
-        type: "AGENT_COMPLETED",
-        agentRole: "ARCHITECT",
-        title: "Architecture created",
-        message: "Generated Drizzle schema, tech stack definition, and contracts.",
-        severity: "SUCCESS",
-      },
-      {
-        id: "act-3",
-        missionId: "mission-001",
-        timestamp: "14:33:40",
-        type: "FILE_CREATED",
-        agentRole: "BUILDER",
-        title: "Project initialized",
-        message: "Scaffolded Next.js App Router and authentication module.",
-        severity: "INFO",
-      },
-      {
-        id: "act-4",
-        missionId: "mission-001",
-        timestamp: "14:35:10",
-        type: "TEST_FAILED",
-        agentRole: "SENTINEL",
-        title: "TEST FAILED",
-        message: "Authentication redirect failed. ISSUE-004 created.",
-        severity: "ERROR",
-      },
-    ],
+    activities: [],
     activeCommunication: null,
     initialize: () => {
       if (!isSubscribed) {

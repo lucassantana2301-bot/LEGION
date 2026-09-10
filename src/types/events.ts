@@ -58,6 +58,10 @@ export type LegionEventType =
   | "EXECUTION_ERROR"
   | "EXECUTION_COMPLETED"
   | "EXECUTION_CANCELLED"
+  // Mission Memory & Shared Context
+  | "MEMORY_ENTRY_ADDED"
+  | "CONTEXT_RETRIEVED"
+  | "MEMORY_SNAPSHOT_CREATED"
   // Terminal / Logs
   | "TERMINAL_OUTPUT";
 
@@ -67,6 +71,9 @@ export interface BaseEventPayload {
   timestamp: string;
   seq: number;
   type: LegionEventType;
+  slotId?: number | string;
+  activeTaskCount?: number;
+  concurrencyLimit?: number;
 }
 
 export interface MissionEventPayload extends BaseEventPayload {
@@ -196,6 +203,12 @@ export interface TerminalEventPayload extends BaseEventPayload {
   text: string;
 }
 
+export interface MemoryEventPayload extends BaseEventPayload {
+  type: "MEMORY_ENTRY_ADDED" | "CONTEXT_RETRIEVED" | "MEMORY_SNAPSHOT_CREATED";
+  message: string;
+  data?: Record<string, unknown>;
+}
+
 export type LegionEvent =
   | MissionEventPayload
   | AgentEventPayload
@@ -207,4 +220,6 @@ export type LegionEvent =
   | ApprovalEventPayload
   | SandboxEventPayload
   | ExecutionEventPayload
-  | TerminalEventPayload;
+  | TerminalEventPayload
+  | MemoryEventPayload;
+

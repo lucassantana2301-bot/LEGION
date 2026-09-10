@@ -27,7 +27,7 @@ describe("E2BSandboxProvider (Contract & Boundary)", () => {
     // Traversal attempts must throw SandboxPathError
     expect(() => resolveSandboxPath(root, "../secret.txt")).toThrow(SandboxPathError);
     expect(() => resolveSandboxPath(root, "../../etc/shadow")).toThrow(SandboxPathError);
-    expect(resolveSandboxPath(root, "/etc/passwd")).toBe("/home/user/etc/passwd");
+    expect(() => resolveSandboxPath(root, "/etc/passwd")).toThrow(SandboxPathError);
   });
 });
 
