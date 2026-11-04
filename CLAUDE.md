@@ -1,99 +1,89 @@
 # LEGION — Instruções do projeto
 
 > Complementa (não substitui) as instruções globais em `~/.claude/CLAUDE.md`.
-> Regras de agente adicionais e vinculantes estão em `AGENTS.md` (raiz) — leia e respeite integralmente.
+> `AGENTS.md` (raiz) é **canônico e vinculante**: princípios, convenções de código/design e papéis dos agentes estão lá — não repito aqui. Em conflito, `AGENTS.md` vence.
 
-## Stack
+## Stack (versões do `package.json`)
 
-- **Framework**: Next.js 14.2.23 (App Router), React 18.3.1, TypeScript 5.7 (strict mode)
-- **Estilo**: Tailwind CSS 3.4 + design tokens em CSS variables (`src/app/globals.css`)
-- **Estado**: Zustand 5 (slices modulares em `src/stores/`)
-- **Banco de dados**: PostgreSQL + Drizzle ORM 0.38 (`drizzle-kit` 0.30)
-- **Validação**: Zod 3.23
-- **Ícones/animação**: Lucide React, Framer Motion
-- **Gerenciador de pacotes**: npm (há `package-lock.json`)
-- **Lint**: ESLint 8 (`eslint-config-next`)
-
-## Estrutura principal
-
-```
-src/
-  app/            # Next.js App Router — páginas e layouts
-  components/     # Componentes por domínio: legion, missions, agents, graph, activity, terminal, tasks, approvals, ui
-  lib/
-    providers/    # Abstrações de provider: llm.ts, sandbox.ts, git.ts, deployment.ts
-    events/       # Event Bus tipado (bus.ts) — fonte única de verdade para telemetria/UI
-    db/           # Schema Drizzle, seed, conexão
-    engine/       # DemoMissionEngine (motor determinístico de demonstração)
-  stores/         # Slices Zustand: mission, agents, tasks, activity, terminal
-  types/          # domain.ts e events.ts — fonte de verdade dos tipos (nunca usar `any`)
-docs/             # PRODUCT.md, ARCHITECTURE.md, AGENTS.md, EVENT_SYSTEM.md, DATABASE.md, SECURITY.md, ROADMAP.md
-```
-
-Ainda não existe pasta `drizzle/` (migrations) — nenhuma migration foi gerada até o momento.
+Next.js 14.2.23 (App Router) · React 18.3 · TypeScript 5.7 strict · Tailwind 3.4 · Zustand 5 · Drizzle ORM 0.38 + drizzle-kit 0.30 + `pg` · Zod 3.23 · Vitest 2.1 · `@e2b/code-interpreter` 2.7 · ESLint 8 (`eslint-config-next`). Gerenciador: **npm** (`package-lock.json`). Alias `@/*` → `src/*`.
 
 ## Comandos
 
-- Instalar dependências: `npm install`
-- Rodar em dev: `npm run dev` (http://localhost:3000)
-- Build: `npm run build`
-- Produção (após build): `npm run start`
-- Lint: `npm run lint`
-- Gerar migrations Drizzle: `npm run db:generate`
-- Rodar migrations: `npm run db:migrate`
-- Seed do banco: `npm run db:seed`
-- Type check estrito (exigido pelo AGENTS.md, zero warnings): `npx tsc --noEmit`
+| Ação | Comando |
+|---|---|
+| Dev (http://localhost:3000) | `npm run dev` |
+| Build | `npm run build` |
+| Lint | `npm run lint` |
+| Typecheck (sem script) | `npx tsc --noEmit` |
+| Testes (Vitest, `src/**/*.test.ts`) | `npm test` — um arquivo: `npx vitest run src/lib/events/bus.test.ts` |
+| Gerar migration | `npm run db:generate` (drizzle-kit, schema `src/lib/db/schema.ts` → `./drizzle`) |
+| Aplicar migrations | `npm run db:migrate` — **exige aprovação humana** |
 
-Não há suíte de testes configurada no `package.json` no momento.
+`npm run db:seed` está **quebrado**: roda `./dist/seed.js`, que não existe (só há `src/lib/db/seed-data.ts`, sem script de build). Não o use nem o cite como funcional.
 
-## Configuração de ambiente
+## Verificação obrigatória antes de dizer "pronto"
 
-- Copiar `.env.example` para `.env.local` antes de rodar localmente.
-- `DATABASE_URL` aponta para PostgreSQL (`postgres://postgres:postgres@localhost:5432/legion` por padrão).
-- Providers (LLM/Sandbox/Git) estão em modo `mock` por padrão — chaves reais (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GITHUB_TOKEN`) ainda não configuradas.
-- Guardrails de execução já definidos via env: `MAX_MISSION_ITERATIONS`, `MAX_AGENT_RETRIES`, `MAX_MISSION_COST_USD`, `APPROVAL_REQUIRED_FOR_MIGRATIONS`, `APPROVAL_REQUIRED_FOR_DEPLOYS`.
+1. `npx tsc --noEmit` → zero erros/warnings (exigência do `AGENTS.md`).
+2. `npm run lint` → limpo.
+3. `npm test` → todos passando; se mexeu em um módulo com `*.test.ts` ao lado, rode esse teste e atualize-o.
+4. Mudou rota, layout ou config do Next → `npm run build`.
+5. Mudou `schema.ts` → `npm run db:generate` e mostre o SQL gerado; **não** rode `db:migrate` sem aprovação.
 
-## Arquitetura (resumo — ver `docs/ARCHITECTURE.md`)
+Se algum passo não puder rodar (ex.: `node_modules` ausente), diga explicitamente qual não foi executado — não declare sucesso.
+
+## Mapa do código
 
 ```
-UI (App Router + componentes) ──► Event Bus (legionEventBus) ◄── Zustand slices
-                                        │
-                       Orquestração (Commander / DemoMissionEngine)
-                                        │
-                Provider Abstraction Layer (LLM, Sandbox, Git, Deployment)
-                                        │
-                          PostgreSQL + Drizzle ORM
+src/app/            páginas App Router + api/ (route handlers, todos POST; orchestrator/builder/diagnostic fazem streaming NDJSON)
+  api/agent/orchestrator  api/agent/builder  api/sandbox/execute  api/sandbox/diagnostic
+src/components/     por domínio: legion, missions, agents, graph, activity, terminal, tasks, approvals, sentinel, ui
+src/lib/
+  agent/            Commander, Architect, Builder, Sentinel, orchestrator, tools (writeFile/readFile/listFiles/executeSafeCommand)
+  providers/        ÚNICO lugar com SDK/HTTP de terceiros: llm.ts, sandbox.ts, e2b-sandbox.ts, git.ts, deployment.ts; seleção em index.ts
+  sandbox/          command-validator (allowlist de comandos) + sandbox-service
+  workspace/        canonical-workspace, materializer, integrated-qa (+ testes "zero-bypass"/"hardening")
+  memory/           memory-store, context-retriever, sanitizer (redação de segredos em eventos)
+  events/bus.ts     legionEventBus — barramento tipado UI ⇄ engine
+  engine/           demo-engine (determinístico) e mission-engine
+  db/               schema.ts, index.ts (Pool pg), seed-data.ts
+  config/limits.ts  limites lidos de env
+  client/           mission-stream (consumo NDJSON no browser)
+src/stores/         slices Zustand (mission, agents, tasks, activity, terminal) + mission-runtime-store, mission-history-store, mission-store
+src/types/          domain.ts, events.ts, stream.ts — fonte de verdade dos tipos
+docs/               ARCHITECTURE, EVENT_SYSTEM, DATABASE, SECURITY, ROADMAP, PRODUCT, AGENTS, PHASE_01_AUDIT, PHASE_02A/B/C
 ```
 
-- Quatro agentes lógicos do domínio: **COMMANDER** (orquestração), **ARCHITECT** (schemas/contratos), **BUILDER** (implementação), **SENTINEL** (testes/qualidade). Ver `docs/AGENTS.md` e `AGENTS.md`.
-- Fase atual do produto: **Phase 01 — Foundation + Deterministic Demo Engine** (ver `docs/ROADMAP.md`); orquestração real de LLM/sandbox ainda não implementada (Phase 02 planejada).
+Não existe pasta `drizzle/` (nenhuma migration gerada ainda).
 
-## Convenções específicas deste projeto
+## Regras de arquitetura (resumo operacional; detalhe em `AGENTS.md` e `docs/ARCHITECTURE.md`)
 
-- **Nunca usar `any`** — tipos vêm de `src/types/domain.ts` e `src/types/events.ts`.
-- **Nunca acoplar UI a lógica de negócio diretamente** — comunicação via eventos tipados no `legionEventBus` (`src/lib/events/bus.ts`).
-- **Nunca importar SDKs de terceiros diretamente na UI ou orquestração** — usar as abstrações em `src/lib/providers/`.
-- **Nunca executar comandos de shell arbitrários no host** (servidor ou browser) — toda execução de runtime deve passar por contratos de sandbox isolado.
-- **Aprovação humana obrigatória** para migrations de schema, operações destrutivas em arquivos, e deploys de produção.
-- Design visual: dark, minimalista, estilo dev-tool (Linear/Raycast/Vercel) — sem neon/cyberpunk. Usar classes semânticas de design tokens (`bg-surface`, `bg-surfaceRaised`, `border-border`, `text-accent`, etc.) definidas em `globals.css`.
-- Estado: manter slices modulares e separados (mission, agents, tasks/issues, activity, terminal) — evitar store monolítica.
-- TypeScript estrito obrigatório, sem warnings do compilador.
+- UI nunca chama engine/agentes direto: emite/assina eventos tipados em `legionEventBus`. Evento novo → declare em `src/types/events.ts` primeiro.
+- SDK ou `fetch` para API externa só dentro de `src/lib/providers/`; o resto consome `getLLMProvider()` / `getSandboxProvider()` de `@/lib/providers`.
+- Execução de comando só via sandbox + `src/lib/sandbox/command-validator.ts`. Nunca `child_process` no host.
+- Payload externo (body de rota, saída de LLM) validado com Zod antes de usar (`docs/SECURITY.md`). Hoje as rotas em `src/app/api/` validam à mão — código novo usa Zod.
+- Eventos enviados ao cliente passam por `sanitizeValue` (`src/lib/memory/sanitizer.ts`), como já fazem orchestrator e builder.
+- Segredos só server-side; nada sensível em `NEXT_PUBLIC_*`, nem import de `@/lib/providers` ou `@/lib/db` em arquivo `"use client"`.
+- Store nova = slice nova em `src/stores/`; não engorde uma existente.
+- Aprovação humana para migrations, operações destrutivas em arquivos e deploys.
+- Estado do produto: Phases 01–02C concluídas (Builder real com E2B); Phase 03 (Commander/Sentinel reais) em aberto — ver `docs/ROADMAP.md`.
 
-## Regras de segurança (ver `docs/SECURITY.md`)
+## Ambiente
 
-1. Isolamento de host: agentes nunca executam código/shell no servidor da aplicação; workloads dinâmicos rodam em sandboxes isolados (Docker/Firecracker/E2B).
-2. Zero exposição de segredos no client: API keys e credenciais de banco só em variáveis de ambiente server-side, nunca no bundle client-side.
-3. Validação estrita de entrada: todo payload externo e instrução de usuário validado via Zod.
-4. Human-in-the-loop obrigatório para migrations de produção, exclusão de branches e releases de produção.
-5. Budgets de execução: limites de tokens, iterações máximas e detecção de loop para evitar execução recursiva descontrolada.
+Copie `.env.example` → `.env.local` (o `vitest.setup.ts` carrega `.env.local` e depois `.env`). Variáveis lidas pelo código:
 
-## Documentação importante
+- Banco: `DATABASE_URL` (fallback local hardcoded em `src/lib/db/index.ts` e `drizzle.config.ts`).
+- LLM: `LLM_PROVIDER` (`google`|`gemini`|`anthropic`|`openai`|`mock`), `LLM_MODEL`, `GEMINI_API_KEY`/`GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `LLM_API_KEY` (genérica).
+- Sandbox: `SANDBOX_PROVIDER` (`e2b`|`real`|`mock`), `E2B_API_KEY`.
+- Limites (`src/lib/config/limits.ts`): `MAX_MISSION_ITERATIONS`, `SANDBOX_TIMEOUT_MS`, `MAX_OUTPUT_BYTES`, `MAX_TERMINAL_LINES`.
+- `NODE_ENV=test` libera `allowMock` na rota do orchestrator.
 
-- `AGENTS.md` (raiz) — regras vinculantes para agentes de IA trabalhando neste repositório.
-- `docs/PRODUCT.md` — visão de produto e workflows principais.
-- `docs/ARCHITECTURE.md` — arquitetura do sistema e layout de diretórios.
-- `docs/AGENTS.md` — papéis dos agentes (Commander/Architect/Builder/Sentinel).
-- `docs/EVENT_SYSTEM.md` — especificação completa do Event Bus e hierarquia de eventos.
-- `docs/DATABASE.md` — entidades do schema Drizzle/PostgreSQL.
-- `docs/SECURITY.md` — princípios de segurança por design.
-- `docs/ROADMAP.md` — fases do roadmap (Phase 01 atual, 02 e 03 planejadas).
+## Armadilhas reais
+
+- **Seleção de LLM não cai para mock sozinha**: com `LLM_PROVIDER=google` (padrão do `.env.example`) e sem chave, `getLLMProvider()` devolve o provider Gemini, que lança `MISSING_API_KEY`. Para dev offline use `LLM_PROVIDER=mock`. Já o sandbox cai para `MockSandboxProvider` se faltar `E2B_API_KEY`.
+- **Variáveis declaradas mas não lidas**: `GIT_PROVIDER`, `GITHUB_TOKEN`, `MAX_AGENT_RETRIES`, `MAX_MISSION_COST_USD`, `APPROVAL_REQUIRED_FOR_*`, `NEXT_PUBLIC_*`. Mudar o valor não muda nada até alguém implementar. `local_ollama` e `gitlab`/`github` não têm provider (só `MockGitProvider`/`MockDeploymentProvider`).
+- **Orchestrator exige execução real** por padrão (`requireRealExecution`): sem chaves, a rota falha de propósito — não "conserte" removendo o guard.
+- Testes `zero-bypass`/`hardening`/`audit-remediation` em `src/lib/workspace/` travam regressões de segurança; se quebrarem, o código está errado, não o teste.
+- Testes que manipulam `process.env` restauram o valor original — mantenha esse padrão ao escrever novos.
+- Três stores de missão coexistem (`mission-slice`, `mission-store`, `mission-runtime-store`); confira qual o componente usa antes de editar.
+- `src/app/projects/[id]/files/page.tsx` contém código Drizzle **dentro de strings** (conteúdo de demo), não imports reais.
+- `node_modules` pode não estar instalado; não rode `npm install` sem pedir.
