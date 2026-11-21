@@ -2,7 +2,14 @@ name: Activity log
 
 on:
   schedule:
-    - cron: "41 13 * * *"
+    # 05:00, 09:00, 11:30, 14:40, 15:55, 19:30, 22:50 (America/Sao_Paulo)
+    - cron: "0 8 * * *"
+    - cron: "0 12 * * *"
+    - cron: "30 14 * * *"
+    - cron: "40 17 * * *"
+    - cron: "55 18 * * *"
+    - cron: "30 22 * * *"
+    - cron: "50 1 * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,10 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      MIN_COMMITS: "3"
-      MAX_COMMITS: "7"
-      # Chance (%) de pular o dia, para o padrão não ficar uniforme entre repositórios
-      SKIP_PERCENT: "25"
+      MIN_COMMITS: "2"
+      MAX_COMMITS: "5"
+      # Chance (%) de commitar em cada horário: cada repo aparece em horários diferentes a cada dia
+      RUN_PERCENT: "15"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,9 +40,9 @@ jobs:
         run: |
           set -euo pipefail
           # Execução manual nunca pula
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ $(( RANDOM % 100 )) -lt "$SKIP_PERCENT" ]; then
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] && [ $(( RANDOM % 100 )) -ge "$RUN_PERCENT" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Dia pulado"
+            echo "Horário pulado"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -70,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           BRANCH="${{ github.ref_name }}"
-          # Um único push por execução: no máximo um rebuild por dia em hosts que observam a branch
+          # Um único push por execução para não disparar vários rebuilds em hosts que observam a branch
           for attempt in 1 2 3; do
             if git push origin "HEAD:${BRANCH}"; then
               exit 0
